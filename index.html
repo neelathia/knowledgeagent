@@ -248,7 +248,7 @@ function renderSidebar(){
     const div = document.createElement('div');
     div.className = 'doc-item' + (doc.doc_id === activeDocId ? ' active' : '');
     div.onclick = () => openDoc(doc.doc_id);
-    const sectionCount = Object.keys(doc.sections || {}).length;
+    const sectionCount = Object.values(doc.sections || {}).filter(s=>s.content&&s.content.trim().length>0).length;
     div.innerHTML = `
       <div class="doc-item-title">${doc.title || 'Untitled'}</div>
       <div class="doc-item-id">${doc.doc_id}</div>
@@ -316,7 +316,7 @@ function renderEditor(){
       <div class="action-bar-left">
         <span class="save-status" id="saveStatus">All saved</span>
         <span style="color:rgba(255,255,255,0.15)">·</span>
-        <span>${Object.keys(doc.sections||{}).length}/6 sections complete</span>
+        <span id='sectionCounter'>${Object.values(doc.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length}/6 sections complete</span>
       </div>
       <div style="display:flex;gap:10px">
         <button class="export-btn" onclick="showJSON()">Export JSON</button>
@@ -483,6 +483,14 @@ function saveCurrentDoc(){
   renderSidebar();
   renderTabs();
   updateCounts();
+  // Update bottom counter
+  const counter = document.getElementById('sectionCounter');
+  if(counter){
+    const d = docs[activeDocId];
+    const n = Object.values(d.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length;
+    counter.textContent = n+'/6 sections complete';
+    counter.style.color = n===6 ? '#10b981' : 'var(--slate)';
+  }
 
   // Flash confirmation
   const btn = document.querySelector('.save-btn');
