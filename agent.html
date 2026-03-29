@@ -176,34 +176,28 @@ textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgb
 
   <div class="body">
     <div class="sidebar">
-
-      <!-- Process filter -->
       <div>
         <div class="section-label">Filter by process</div>
         <div class="process-filter" id="processFilter">
           <button class="proc-btn active" data-proc="all" onclick="setProcess('all',this)">All</button>
         </div>
       </div>
-
-      <!-- Dynamic prompts from corpus -->
       <div>
         <div class="section-label">Try these</div>
         <div class="prompt-list" id="promptList">
           <div style="font-size:12px;color:var(--slate)">Loading prompts...</div>
         </div>
       </div>
-
-      <!-- Route panel -->
       <div class="route-panel" id="routePanel">
         <div class="section-label" style="margin-bottom:10px">Last retrieval</div>
         <div class="route-row"><span class="rl">Process</span><span class="rv" id="rProcess">—</span></div>
         <div class="route-row"><span class="rl">Intent</span><span class="rv" id="rIntent">—</span></div>
+        <div class="route-row"><span class="rl">Gap</span><span class="rv" id="rGap">—</span></div>
         <div class="route-row" style="flex-direction:column;gap:6px">
           <span class="rl">Chunks retrieved</span>
           <div id="rChunks"></div>
         </div>
       </div>
-
     </div>
 
     <div class="chat-wrap">
@@ -240,14 +234,14 @@ let sessionLog = [];
 const LOG_KEY = 'ok_query_log';
 const MAX_LOG = 500;
 
-// ── Intent and contract maps ──────────────────────────────────────────────
+// ── Intent map ────────────────────────────────────────────────────────────
 const INTENT_MAP = {
-  "how do i":"DO","how to":"DO","steps to":"DO","step by step":"DO",
-  "what is":"LEARN","explain":"LEARN","difference":"LEARN","what happens":"LEARN","why":"LEARN",
+  "how do i":"DO","how to":"DO","steps to":"DO","step by step":"DO","create a":"DO","set up":"DO","setting up":"DO",
+  "what is":"LEARN","explain":"LEARN","difference":"LEARN","what happens":"LEARN","why":"LEARN","what are":"LEARN",
   "not working":"FIX","error":"FIX","fails":"FIX","problem":"FIX","troubleshoot":"FIX",
   "missing":"FIX","not appearing":"FIX","not visible":"FIX","not closing":"FIX","not created":"FIX",
-  "rule":"CONSTRAINT","critical":"CONSTRAINT","must":"CONSTRAINT","cannot":"CONSTRAINT",
-  "prerequisite":"CHECK","before":"CHECK","what do i need":"CHECK","checklist":"CHECK",
+  "rule":"CONSTRAINT","critical":"CONSTRAINT","must":"CONSTRAINT","cannot":"CONSTRAINT","limit":"CONSTRAINT",
+  "prerequisite":"CHECK","before":"CHECK","what do i need":"CHECK","is the":"CHECK","supposed to":"CHECK",
 };
 
 const CONTRACTS = {
@@ -262,10 +256,48 @@ const INTENT_TAG = {
   DO:'itag-do',FIX:'itag-fix',CHECK:'itag-chk',CONSTRAINT:'itag-con',LEARN:'itag-lrn'
 };
 
-// ── Load corpus from manifest + JSON files ────────────────────────────────
+// ── FALLBACK process keywords ─────────────────────────────────────────────
+// These supplement whatever is in each doc's process_keywords array.
+// Add new entries here whenever the router misses a process.
+const PROCESS_KEYWORD_FALLBACKS = {
+  'SWO': [
+    'standard work order','swo','work order template','swo lookup',
+    'activities lookup','work order creation'
+  ],
+  'TASK-PLAN': [
+    'task plan','task plans','job plan','checklist item','billing relief',
+    'active checklist','required entry','sequence 10','follow-up task'
+  ],
+  'WGC': [
+    'wgc','wgc campaign','work generation campaign','corrective maintenance campaign',
+    'corrective campaign'
+  ],
+  'PMC': [
+    'pmc','pmc campaign','preventive maintenance campaign','pm campaign',
+    'pm schedule','preventive campaign'
+  ],
+  'CAR-LIST': [
+    'car list','campaign car list','20000','20,000 car','car limit','filter criteria'
+  ],
+  'CAR-ACTIVATION': [
+    'activate a car','activate a railcar','car activation','railcar activation',
+    'activate car','activating a car','activating railcar'
+  ],
+  'DEST': [
+    'destroy a car','destroy car','car destruction','end of life','scrap car',
+    'decommission car'
+  ],
+  'EHMS': [
+    'ehms','inspection','hazmat','equipment health'
+  ],
+  'EQUIP-CONFIG': [
+    'equipment configuration','car class','configure equipment','equip config'
+  ],
+};
+
+// ── Load corpus ───────────────────────────────────────────────────────────
 async function loadCorpus(){
   try {
-    // Load manifest
     const manifestRes = await fetch('knowledge_base/manifest.json');
     if(!manifestRes.ok) throw new Error('manifest.json not found');
     const manifest = await manifestRes.json();
@@ -280,18 +312,23 @@ async function loadCorpus(){
         if(!res.ok) continue;
         const doc = await res.json();
 
-        const docId   = doc.doc_id;
-        const process = doc.process;
-        const systems = doc.systems || [];
+        const docId        = doc.doc_id;
+        const process      = doc.process;
+        const systems      = doc.systems || [];
         const dataEntities = doc.data_entities || [];
-        const source  = doc.source || '';
+        const source       = doc.source || '';
 
-        // Build process map from keywords
+        // Register process keywords from doc
         (doc.process_keywords || []).forEach(kw => {
           PROCESS_MAP[kw.toLowerCase()] = process;
         });
 
-        // Build chunks from sections
+        // Also register from fallback table if this process is listed there
+        (PROCESS_KEYWORD_FALLBACKS[process] || []).forEach(kw => {
+          PROCESS_MAP[kw.toLowerCase()] = process;
+        });
+
+        // Build chunks
         const sections = doc.sections || {};
         Object.entries(sections).forEach(([sectionName, section]) => {
           if(!section.content?.trim()) return;
@@ -316,6 +353,16 @@ async function loadCorpus(){
       } catch(e){ console.warn(`Failed to load ${filename}:`, e); }
     }
 
+    // Register ALL fallback keywords (including for processes not yet in corpus)
+    // This allows gap detection to correctly name the process even without a doc
+    Object.entries(PROCESS_KEYWORD_FALLBACKS).forEach(([proc, keywords]) => {
+      keywords.forEach(kw => {
+        if(!PROCESS_MAP[kw.toLowerCase()]) {
+          PROCESS_MAP[kw.toLowerCase()] = proc;
+        }
+      });
+    });
+
     return true;
   } catch(e){
     console.error('Failed to load manifest:', e);
@@ -334,15 +381,21 @@ function detectIntent(q){
 
 function detectProcess(q){
   const ql = q.toLowerCase();
+  // Longest match wins — prevents "car" matching before "activate a car"
+  let best = null;
+  let bestLen = 0;
   for(const [kw, proc] of Object.entries(PROCESS_MAP)){
-    if(ql.includes(kw)) return proc;
+    if(ql.includes(kw) && kw.length > bestLen){
+      best = proc;
+      bestLen = kw.length;
+    }
   }
-  return null;
+  return best;
 }
 
 function retrieve(query, topK=3){
   const ql = query.toLowerCase();
-  const intent = detectIntent(query);
+  const intent  = detectIntent(query);
   const process = activeProcess !== 'all' ? activeProcess : detectProcess(query);
 
   const scored = CORPUS
@@ -366,11 +419,11 @@ function retrieve(query, topK=3){
   return { chunks: scored, intent, process };
 }
 
-// ── Build context envelope ────────────────────────────────────────────────
+// ── Context envelope ──────────────────────────────────────────────────────
 function buildContext(chunks){
-  const caps = [...new Set(chunks.map(c=>c.business_capability).filter(Boolean))];
-  const stages = [...new Set(chunks.map(c=>c.process_stage).filter(Boolean))];
-  const systems = [...new Set(chunks.flatMap(c=>c.systems))];
+  const caps     = [...new Set(chunks.map(c=>c.business_capability).filter(Boolean))];
+  const stages   = [...new Set(chunks.map(c=>c.process_stage).filter(Boolean))];
+  const systems  = [...new Set(chunks.flatMap(c=>c.systems))];
   const entities = [...new Set(chunks.flatMap(c=>c.data_entities))];
   const triggers = [...new Set(chunks.map(c=>c.data_triggers).filter(Boolean))];
 
@@ -394,9 +447,147 @@ function buildContext(chunks){
   return parts.join('\n\n');
 }
 
+// ── Analytics logging ─────────────────────────────────────────────────────
+// GAP LOGIC (fixed):
+// gap:true  = no chunks returned OR process detected but no doc exists in corpus
+// gap:false = chunks returned AND process either matched or is genuinely universal
+// gap_reason distinguishes WHY:
+//   "no_chunks"         = retrieval returned nothing
+//   "no_doc_for_process"= process keyword matched but no How-To exists yet
+//   "weak_intent_match" = chunks returned but none match detected intent
+//   null                = clean hit
+function logQuery(query, intent, process, chunks){
+  const noChunks      = chunks.length === 0;
+  const processKnown  = !!process;
+  const processHasDoc = processKnown && DOCS.some(d => d.process === process);
+  const weakIntent    = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
+
+  // True gap: no content OR process is known but has no doc yet
+  const isGap = noChunks || (processKnown && !processHasDoc);
+
+  const gapReason = noChunks           ? 'no_chunks'
+                  : (processKnown && !processHasDoc) ? 'no_doc_for_process'
+                  : weakIntent         ? 'weak_intent_match'
+                  : !processKnown && chunks.length > 0 ? 'no_process_match'
+                  : null;
+
+  const entry = {
+    ts: new Date().toISOString(),
+    query,
+    intent: intent || null,
+    process: process || null,
+    chunks_retrieved: chunks.length,
+    chunk_ids: chunks.map(c => c.chunk_id),
+    gap: isGap,
+    gap_reason: gapReason,
+  };
+
+  sessionLog.push(entry);
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    stored.push(entry);
+    if(stored.length > MAX_LOG) stored.splice(0, stored.length - MAX_LOG);
+    localStorage.setItem(LOG_KEY, JSON.stringify(stored));
+  } catch(e){ console.warn('Log save failed:', e); }
+
+  if(isGap) updateGapBanner();
+}
+
+function updateGapBanner(){
+  const gaps = sessionLog.filter(e => e.gap);
+  if(!gaps.length) return;
+  let banner = document.getElementById('gapBanner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'gapBanner';
+    banner.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);
+      border-radius:10px;padding:10px 18px;font-size:12px;color:#fcd34d;
+      font-family:'DM Mono',monospace;z-index:50;display:flex;align-items:center;
+      gap:10px;backdrop-filter:blur(12px);cursor:pointer;transition:all .2s;
+      white-space:nowrap;`;
+    banner.onclick = () => showGapReport();
+    document.getElementById('app').appendChild(banner);
+  }
+  const uniq = new Set(gaps.map(g => g.process || g.query.split(' ').slice(0,3).join(' ')));
+  banner.innerHTML = `⚠ ${gaps.length} gap${gaps.length!==1?'s':''} this session — ${[...uniq].slice(0,2).join(', ')}${uniq.size>2?'…':''} <span style="opacity:.6">· View report →</span>`;
+}
+
+function showGapReport(){
+  const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
+  const gaps = stored.filter(e => e.gap === true);
+  const groups = {};
+  gaps.forEach(g => {
+    const key = g.process || 'unmatched';
+    if(!groups[key]) groups[key] = { count:0, queries:[], intents:{} };
+    groups[key].count++;
+    if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
+    if(g.intent) groups[key].intents[g.intent] = (groups[key].intents[g.intent]||0) + 1;
+  });
+
+  const rows = Object.entries(groups)
+    .sort((a,b) => b[1].count - a[1].count)
+    .map(([proc, data]) => {
+      const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'unknown';
+      const suggestion = proc === 'unmatched'
+        ? 'Add process keywords to PROCESS_KEYWORD_FALLBACKS in agent.html'
+        : `Create How-To doc for process: ${proc}`;
+      return `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#fcd34d">${proc}</span>
+          <span style="font-size:11px;color:var(--slate)">${data.count} gap${data.count!==1?'s':''} · top intent: ${topIntent}</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-bottom:4px">Sample: ${data.queries.slice(0,2).map(q=>`"${q}"`).join(', ')}</div>
+        <div style="font-size:11px;color:#0ea5e9">→ ${suggestion}</div>
+      </div>`;
+    }).join('');
+
+  let modal = document.getElementById('gapModal');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'gapModal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;`;
+  modal.innerHTML = `
+    <div style="background:#162336;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Knowledge Gap Report</div>
+          <div style="font-size:12px;color:var(--slate);font-family:'DM Mono',monospace;margin-top:4px">${gaps.length} true gaps · ${stored.length} total logged</div>
+        </div>
+        <button onclick="document.getElementById('gapModal').remove()" style="background:none;border:none;color:var(--slate);font-size:22px;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      ${rows || '<div style="color:var(--slate);font-size:13px">No gaps recorded yet.</div>'}
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="exportLog()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:8px 16px;color:var(--slate-light);font-size:12px;cursor:pointer">Export Log JSON</button>
+        <button onclick="clearLog()" style="background:transparent;border:1px solid rgba(248,113,113,0.2);border-radius:9px;padding:8px 16px;color:#f87171;font-size:12px;cursor:pointer">Clear Log</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function exportLog(){
+  const stored = localStorage.getItem(LOG_KEY)||'[]';
+  const blob = new Blob([stored],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ok_query_log_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+function clearLog(){
+  if(!confirm('Clear all logged queries? This cannot be undone.')) return;
+  localStorage.removeItem(LOG_KEY);
+  sessionLog = [];
+  const banner = document.getElementById('gapBanner');
+  if(banner) banner.remove();
+  const modal = document.getElementById('gapModal');
+  if(modal) modal.remove();
+}
+
 // ── UI helpers ────────────────────────────────────────────────────────────
 function buildSidebar(){
-  // Process filter buttons
   const filter = document.getElementById('processFilter');
   const processes = [...new Set(CORPUS.map(c=>c.process))];
   processes.forEach(proc => {
@@ -408,17 +599,16 @@ function buildSidebar(){
     filter.appendChild(btn);
   });
 
-  // Generate prompts from corpus
   const prompts = [];
   DOCS.forEach(doc => {
     const docChunks = CORPUS.filter(c => c.doc_id === doc.doc_id);
     const intents = new Set(docChunks.map(c=>c.intent));
     const proc = doc.process.toLowerCase().replace(/-/g,' ');
-    if(intents.has('DO'))         prompts.push({intent:'DO',   tag:'itag-do',  text:`How do I create a ${proc}?`, proc:doc.process});
-    if(intents.has('FIX'))        prompts.push({intent:'FIX',  tag:'itag-fix', text:`Something is not working in ${proc}`, proc:doc.process});
-    if(intents.has('CONSTRAINT')) prompts.push({intent:'CONSTRAINT',tag:'itag-con',text:`Critical rules for ${proc}`, proc:doc.process});
-    if(intents.has('CHECK'))      prompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`, proc:doc.process});
-    if(intents.has('LEARN'))      prompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`, proc:doc.process});
+    if(intents.has('DO'))         prompts.push({intent:'DO',   tag:'itag-do',  text:`How do I create a ${proc}?`});
+    if(intents.has('FIX'))        prompts.push({intent:'FIX',  tag:'itag-fix', text:`Something is not working in ${proc}`});
+    if(intents.has('CONSTRAINT')) prompts.push({intent:'CONSTRAINT',tag:'itag-con',text:`Critical rules for ${proc}`});
+    if(intents.has('CHECK'))      prompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`});
+    if(intents.has('LEARN'))      prompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`});
   });
 
   const list = document.getElementById('promptList');
@@ -431,7 +621,6 @@ function buildSidebar(){
     list.appendChild(btn);
   });
 
-  // Empty state chips
   const chips = document.getElementById('emptyChips');
   chips.innerHTML = '';
   prompts.slice(0,4).forEach(p => {
@@ -442,7 +631,6 @@ function buildSidebar(){
     chips.appendChild(span);
   });
 
-  // Update topbar
   const processes2 = [...new Set(CORPUS.map(c=>c.process))];
   document.getElementById('topbarSub').textContent =
     `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
@@ -495,11 +683,19 @@ function addMsg(role, text, isTyping=false){
 
 function htmlEsc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function showRoute(intent, process, chunks){
+function showRoute(intent, process, chunks, isGap, gapReason){
   const panel = document.getElementById('routePanel');
   panel.classList.add('show');
   document.getElementById('rProcess').textContent = process || 'universal';
   document.getElementById('rIntent').textContent  = intent  || 'undetected';
+  const gapEl = document.getElementById('rGap');
+  if(isGap){
+    gapEl.innerHTML = `<span style="color:var(--red)">⚠ ${gapReason||'gap'}</span>`;
+  } else if(gapReason === 'no_process_match'){
+    gapEl.innerHTML = `<span style="color:var(--gold)">routing miss</span>`;
+  } else {
+    gapEl.innerHTML = `<span style="color:var(--green)">✓ hit</span>`;
+  }
   document.getElementById('rChunks').innerHTML = chunks.map(c =>
     `<span class="chunk-pill">${c.chunk_id}</span>`).join('');
 }
@@ -512,12 +708,7 @@ function resetChat(){
     <p>Questions are routed by process and intent before retrieval.</p>
     <div class="empty-chips" id="emptyChips"></div>
   </div>`;
-  // Re-add chips
-  const prompts = [];
-  DOCS.slice(0,4).forEach(doc => {
-    const proc = doc.process.toLowerCase().replace(/-/g,' ');
-    prompts.push(`How do I create a ${proc}?`);
-  });
+  const prompts = DOCS.slice(0,4).map(doc => `How do I create a ${doc.process.toLowerCase().replace(/-/g,' ')}?`);
   const chips = document.getElementById('emptyChips');
   prompts.forEach(p => {
     const span = document.createElement('span');
@@ -527,140 +718,6 @@ function resetChat(){
     chips.appendChild(span);
   });
   document.getElementById('routePanel').classList.remove('show');
-}
-
-// ── Analytics logging ────────────────────────────────────────────────────
-function logQuery(query, intent, process, chunks){
-  const isGap = chunks.length === 0;
-  // Flag as gap if no process detected — means question is about unknown topic
-  const noProcess = !process;
-  // Flag as weak if chunks retrieved but none match the detected intent
-  const isWeak = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
-  const gapReason = chunks.length === 0 ? 'no_chunks' :
-                    noProcess ? 'no_process_match' :
-                    isWeak ? 'weak_intent_match' : null;
-  const isActualGap = isGap || noProcess || isWeak;
-
-  const entry = {
-    ts: new Date().toISOString(),
-    query,
-    intent: intent || null,
-    process: process || null,
-    chunks_retrieved: chunks.length,
-    chunk_ids: chunks.map(c=>c.chunk_id),
-    gap: isActualGap,
-    gap_reason: gapReason
-  };
-
-  // Save to session
-  sessionLog.push(entry);
-
-  // Save to persistent log
-  try {
-    const stored = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-    stored.push(entry);
-    // Keep last MAX_LOG entries
-    if(stored.length > MAX_LOG) stored.splice(0, stored.length - MAX_LOG);
-    localStorage.setItem(LOG_KEY, JSON.stringify(stored));
-  } catch(e){ console.warn('Log save failed:', e); }
-
-  // Show gap banner if gap
-  if(isActualGap) updateGapBanner();
-}
-
-function updateGapBanner(){
-  const gaps = sessionLog.filter(e=>e.gap);
-  if(!gaps.length) return;
-  let banner = document.getElementById('gapBanner');
-  if(!banner){
-    banner = document.createElement('div');
-    banner.id = 'gapBanner';
-    banner.style.cssText = `
-      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-      background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);
-      border-radius:10px;padding:10px 18px;font-size:12px;color:#fcd34d;
-      font-family:'DM Mono',monospace;z-index:50;display:flex;align-items:center;
-      gap:10px;backdrop-filter:blur(12px);cursor:pointer;transition:all .2s;
-      white-space:nowrap;`;
-    banner.onclick = () => showGapReport();
-    document.getElementById('app').appendChild(banner);
-  }
-  const uniq = new Set(gaps.map(g=>g.process||g.query.split(' ').slice(0,3).join(' ')));
-  banner.innerHTML = `⚠ ${gaps.length} gap${gaps.length!==1?'s':''} this session — ${[...uniq].slice(0,2).join(', ')}${uniq.size>2?'…':''} <span style="opacity:.6">· View report →</span>`;
-}
-
-function showGapReport(){
-  const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
-  const gaps = stored.filter(e=>e.gap);
-
-  // Group gaps by process/query pattern
-  const groups = {};
-  gaps.forEach(g=>{
-    const key = g.process || 'unknown';
-    if(!groups[key]) groups[key]={count:0,queries:[],intents:{}};
-    groups[key].count++;
-    if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
-    if(g.intent) groups[key].intents[g.intent]=(groups[key].intents[g.intent]||0)+1;
-  });
-
-  const rows = Object.entries(groups)
-    .sort((a,b)=>b[1].count-a[1].count)
-    .map(([proc,data])=>{
-      const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0]||'unknown';
-      const suggestion = proc==='unknown'
-        ? 'Add process keywords to manifest or create new How-To'
-        : `Consider adding or expanding content for process: ${proc}`;
-      return `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#fcd34d">${proc}</span>
-          <span style="font-size:11px;color:var(--slate)">${data.count} gap${data.count!==1?'s':''} · top intent: ${topIntent}</span>
-        </div>
-        <div style="font-size:11px;color:var(--slate);margin-bottom:4px">Sample queries: ${data.queries.slice(0,2).map(q=>`"${q}"`).join(', ')}</div>
-        <div style="font-size:11px;color:#0ea5e9">→ ${suggestion}</div>
-      </div>`;
-    }).join('');
-
-  // Show in a modal-style overlay
-  let modal = document.getElementById('gapModal');
-  if(modal) modal.remove();
-  modal = document.createElement('div');
-  modal.id = 'gapModal';
-  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;`;
-  modal.innerHTML = `
-    <div style="background:#162336;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Knowledge Gap Report</div>
-          <div style="font-size:12px;color:var(--slate);font-family:'DM Mono',monospace;margin-top:4px">${gaps.length} unanswered queries · ${stored.length} total logged</div>
-        </div>
-        <button onclick="document.getElementById('gapModal').remove()" style="background:none;border:none;color:var(--slate);font-size:22px;cursor:pointer;line-height:1">&times;</button>
-      </div>
-      ${rows || '<div style="color:var(--slate);font-size:13px">No gaps recorded yet.</div>'}
-      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="exportLog()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:8px 16px;color:var(--slate-light);font-size:12px;cursor:pointer">Export Log JSON</button>
-        <button onclick="clearLog()" style="background:transparent;border:1px solid rgba(248,113,113,0.2);border-radius:9px;padding:8px 16px;color:#f87171;font-size:12px;cursor:pointer">Clear Log</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-function exportLog(){
-  const stored = localStorage.getItem(LOG_KEY)||'[]';
-  const blob = new Blob([stored],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `ok_query_log_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-}
-
-function clearLog(){
-  if(!confirm('Clear all logged queries? This cannot be undone.')) return;
-  localStorage.removeItem(LOG_KEY);
-  sessionLog = [];
-  const banner = document.getElementById('gapBanner');
-  if(banner) banner.remove();
-  const modal = document.getElementById('gapModal');
-  if(modal) modal.remove();
 }
 
 // ── Send message ──────────────────────────────────────────────────────────
@@ -677,22 +734,39 @@ async function sendMsg(){
   addMsg('user', query);
 
   const { chunks, intent, process } = retrieve(query);
-  showRoute(intent, process, chunks);
+
+  // Calculate gap status before logging (same logic as logQuery)
+  const noChunks     = chunks.length === 0;
+  const processKnown = !!process;
+  const processHasDoc = processKnown && DOCS.some(d => d.process === process);
+  const weakIntent   = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
+  const isGap        = noChunks || (processKnown && !processHasDoc);
+  const gapReason    = noChunks ? 'no_chunks'
+                     : (processKnown && !processHasDoc) ? 'no_doc_for_process'
+                     : weakIntent ? 'weak_intent_match'
+                     : !processKnown && chunks.length > 0 ? 'no_process_match'
+                     : null;
+
+  showRoute(intent, process, chunks, isGap, gapReason);
   logQuery(query, intent, process, chunks);
 
   const typingEl = addMsg('bot', '', true);
 
-  if(!chunks.length){
+  if(noChunks){
     typingEl.remove();
-    addMsg('bot', 'No relevant content found for this query. Try rephrasing or check that the relevant How-To has been added to the knowledge base.');
+    addMsg('bot', `No relevant content found for this query. The process "${process||'unknown'}" may not have a How-To document yet. Check the Editor to add one.`);
     loading = false;
     document.getElementById('sendBtn').disabled = false;
     return;
   }
 
-  const context = buildContext(chunks);
+  // If process known but no doc — still answer from fallback chunks but flag it
+  const context  = buildContext(chunks);
   const contract = intent ? (CONTRACTS[intent] || '') : '';
-  const system = `You are a precise operational knowledge assistant for an Enterprise Asset Management system. Answer based ONLY on the provided context. Do not add information not present in the context. ${contract}`;
+  const gapNote  = (processKnown && !processHasDoc)
+    ? `Note: The process "${process}" has been identified but no dedicated How-To document exists yet. Answer from related context only and note the gap clearly.`
+    : '';
+  const system = `You are a precise operational knowledge assistant for an Enterprise Asset Management system. Answer based ONLY on the provided context. Do not add information not present in the context. ${contract} ${gapNote}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -723,7 +797,7 @@ async function sendMsg(){
   document.getElementById('sendBtn').disabled = false;
 }
 
-// ── Start app ─────────────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────
 async function startApp(){
   const key = document.getElementById('apiKeyInput').value.trim();
   if(!key || !key.startsWith('sk-')){
@@ -731,7 +805,6 @@ async function startApp(){
     return;
   }
   API_KEY = key;
-
   document.getElementById('loadingMsg').style.display = 'block';
 
   const ok = await loadCorpus();
