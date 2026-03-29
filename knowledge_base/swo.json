@@ -1,0 +1,141 @@
+{
+  "doc_id": "MAINT-SWO-001",
+  "title": "How to Create a Standard Work Order",
+  "process": "SWO",
+  "process_keywords": [
+    "swo"
+  ],
+  "hierarchy": {
+    "l1": "Maintain Railcar Assets",
+    "l2": "Plan Asset Maintenance",
+    "l3": "Manage Condition Based Maintenance",
+    "l4": "Work Order Management",
+    "l5": "Manage Work Order (Create to Close)"
+  },
+  "systems": [],
+  "related_processes": [],
+  "data_entities": [],
+  "source": "",
+  "version": "1.0",
+  "author": "Neela Thiagarajan",
+  "last_updated": "2026-03-29",
+  "sections": {
+    "overview": {
+      "content": "A Standard Work Order (SWO) in the EAM system serves as the work instruction template for WGC (corrective maintenance) campaigns. The SWO number must match the Campaign number exactly — this is how the system links work instructions, billing codes, and checklist items to generated work orders.\n\nAn SWO is created before a WGC Campaign. It references a Task Plan via the Activities tab, which defines what technicians do, which billing codes apply, and which documents appear on handheld devices.\n\nSWOs are reusable across multiple campaigns, but in practice each campaign typically references a unique SWO. The SWO number drives downstream reporting — ODS aggregates work order data by SWO number, so naming consistency matters.\n\nUsed exclusively with WGC (corrective, one-time) campaigns. PMC (preventive, recurring) campaigns use PM Schedules instead.",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Task Plan Creation → Standard Work Order Creation → WGC Campaign Creation",
+      "business_outcome": "Corrective maintenance work orders generated with correct work instructions, billing codes, and documents for targeted equipment",
+      "data_triggers": " SWO number must equal Campaign number · Task Plan must be linked on Activities tab before campaign generates work orders · SWO drives ODS reporting aggregation",
+      "intent": "LEARN",
+      "audience": "planner",
+      "keywords": [
+        "standard work order",
+        "SWO",
+        "campaign number",
+        "activities tab",
+        "task plan",
+        "WGC",
+        "corrective maintenance"
+      ]
+    },
+    "prerequisites": {
+      "content": "Before creating a Standard Work Order you must have:\n\n1. Task Plan already created and saved — have the Task Plan number ready\n   The Task Plan defines the checklist items, billing codes, and documents\n   that will appear on all generated work orders\n\n2. SWO number decided — this MUST equal the Campaign number exactly\n   Plan the naming convention before creating (e.g. CBM-602, TEST-0001)\n\n3. Access to the EAM system with Standard Work Order creation permissions\n\n4. Campaign Car List or filter criteria defined — know your target equipment\n   population before creating the SWO and campaign\n\n5. Sub Work Type confirmed if required — obtain permissible values from\n   Process SME before creating",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Pre-Standard Work Order Creation",
+      "business_outcome": "Standard Work Order created correctly on first attempt — no rework from naming mismatch or missing Task Plan",
+      "data_triggers": "SWO number must equal Campaign number — plan before creating · Task Plan must exist before SWO can link to it",
+      "intent": "CHECK",
+      "audience": "planner",
+      "keywords": [
+        "prerequisites",
+        "before you start",
+        "task plan number",
+        "SWO number",
+        "campaign number",
+        "naming convention",
+        "access"
+      ]
+    },
+    "steps": {
+      "content": "Steps to Create a Standard Work Order:\n\nSTEP 1 — Navigate and Create New Record:\n1. Navigate: Work > Work Order Planning > Standard Work Orders\n2. Click the New Record icon\n3. Enter the SWO number — this MUST match the Campaign number exactly\n4. Enter a Description — clear and searchable\n\nSTEP 2 — Link the Task Plan (Activities tab):\n1. Navigate to the Activities tab\n2. Click Add Activity\n3. Set Trade = STAR\n4. Set Quantity = 1\n5. In the Task Plan field — search and select the Task Plan for this work\n6. Click Save\nNote: The Task Plan must already exist before this step\n\nSTEP 3 — Verify Task Plan content carried over:\n1. Confirm checklist items are visible on the Activities tab\n2. Confirm billing relief codes are present\n3. Confirm primary document reference is attached\n\nSTEP 4 — Save:\n1. Click Save Record\n2. Note the SWO number — this is the number you will use for the Campaign\n\nVERIFY:\n- SWO visible in list view\n- Task Plan linked on Activities tab\n- SWO number matches your planned Campaign number",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Standard Work Order Creation → Link Task Plan → WGC Campaign Creation",
+      "business_outcome": "Standard Work Order created with Task Plan linked — ready for WGC Campaign to reference",
+      "data_triggers": "SWO number must equal Campaign number · Task Plan linked via Activities tab (trade STAR, qty 1) · SWO drives work order content at generation time",
+      "intent": "DO",
+      "audience": "planner",
+      "keywords": [
+        "create",
+        "steps",
+        "navigate",
+        "activities tab",
+        "trade STAR",
+        "task plan",
+        "SWO number",
+        "campaign number",
+        "save"
+      ]
+    },
+    "rules": {
+      "keywords": [
+        "rules",
+        "critical",
+        "SWO number",
+        "campaign number",
+        "must match",
+        "task plan linked",
+        "Activities tab",
+        "naming convention",
+        "save"
+      ],
+      "content": "Critical Rules — Standard Work Order:\n\nSWO NUMBER MUST EQUAL CAMPAIGN NUMBER EXACTLY\nThe SWO number and Campaign number must match exactly — no spaces, exact format.\nWrong number = work orders generated without correct content.\n\nTASK PLAN MUST BE LINKED BEFORE CAMPAIGN RUNS\nTask Plan must be linked on Activities tab (trade STAR, qty 1) before the WGC\nCampaign generates work orders. If linked after generation, existing work orders\nwill not have checklist items or billing codes.\n\nONE TASK PLAN PER SWO\nEach SWO should reference one Task Plan. Multiple Task Plans causes unpredictable\nwork order content.\n\nSWO IS REUSABLE — PLAN NAMING CAREFULLY\nSWO can be referenced by multiple campaigns using suffix naming (CBM-602-01,\nCBM-602-02) all referencing SWO CBM-602. ODS aggregates by SWO number.\n\nSAVE IS REQUIRED AFTER EVERY STATUS CHANGE\nStatus change alone does not trigger any system action. Save must be clicked after\nevery status change.",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Standard Work Order Creation → WGC Campaign Creation",
+      "business_outcome": "Work order generation errors prevented — correct content on all generated work orders",
+      "data_triggers": "SWO number drives campaign linking · Task Plan on Activities tab at time of WO generation · Save required after every status change",
+      "intent": "CONSTRAINT",
+      "audience": "planner"
+    },
+    "troubleshoot": {
+      "keywords": [
+        "troubleshoot",
+        "work orders missing content",
+        "wrong content",
+        "SWO not found",
+        "task plan lookup",
+        "reporting",
+        "ODS",
+        "suffix naming"
+      ],
+      "content": "Standard Work Order Troubleshooting:\n\nProblem: Work orders generated without checklist items or billing codes\nCause: Task Plan was not linked on the SWO Activities tab before the campaign ran, or wrong Task Plan was linked.\nFix: Open the SWO → Activities tab. Verify the correct Task Plan is linked (trade STAR, qty 1). Note: already-generated work orders will not update — only new work orders from this point forward will pick up the Task Plan content.\n\nProblem: Work orders generated with wrong content\nCause: SWO number did not match Campaign number — system linked the wrong SWO.\nFix: Verify SWO number exactly matches Campaign number. No spaces, exact format. If mismatch occurred, the campaign may need to be recreated with the correct SWO reference.\n\nProblem: SWO not found when creating Campaign\nCause: SWO number entered in Campaign does not match any existing SWO, or SWO is in wrong status.\nFix: Search for SWO in Work Order Planning. Confirm the exact number including any prefix or suffix. Confirm SWO is in Active or correct status.\n\nProblem: Task Plan lookup returns no results on Activities tab\nCause: Task Plan Work Order Type is not set to Campaign.\nFix: Open the Task Plan and verify Work Order Type = Campaign. See MAINT-TP-001 for Task Plan rules.\n\nProblem: Downstream reporting not showing work orders under correct SWO\nCause: Campaign was created with a different number than the SWO, or suffix naming was inconsistent.\nFix: Check ODS reporting aggregation — it groups by SWO number. Ensure all related campaigns use the same SWO base number with consistent suffix naming (CBM-602-01, CBM-602-02).",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Standard Work Order Creation → WGC Campaign Creation",
+      "business_outcome": "Work order generation errors prevented — correct content on all generated work orders",
+      "data_triggers": "Task Plan linked at time of WO generation · SWO number must match Campaign number · ODS aggregates by SWO number",
+      "intent": "FIX",
+      "audience": "planner"
+    },
+    "glossary": {
+      "content": "Standard Work Order Glossary:\n\nStandard Work Order (SWO): The work instruction template for a WGC corrective maintenance campaign. The SWO number must exactly match the Campaign number. References a Task Plan via the Activities tab.\n\nActivities Tab: The tab on a Standard Work Order where the Task Plan is linked. Trade must be set to STAR, quantity 1. This is the connection point between the SWO and the work instructions that appear on generated work orders.\n\nTrade STAR: The trade designation used when linking a Task Plan to a Standard Work Order on the Activities tab. Must be set to STAR for the Task Plan content to carry through to work orders.\n\nWGC Campaign: Corrective maintenance campaign that references an SWO to generate one-time work orders for a targeted equipment set. The Campaign number must equal the SWO number.\n\nODS (Reporting System): Downstream reporting system that aggregates work order data by SWO number. Naming consistency across related campaigns is critical for accurate reporting.\n\nSuffix Naming Convention: When splitting a large equipment population across multiple campaigns, all campaigns reference the same SWO using incremental suffixes (CBM-602-01, CBM-602-02). ODS aggregates all of them under the base SWO number.\n\nCampaign Number: Must exactly match the SWO number. This is how the system identifies which work instructions, billing codes, and checklist items to apply to generated work orders.",
+      "business_capability": "Maintenance Execution",
+      "process_stage": "Standard Work Order Creation → WGC Campaign Creation",
+      "business_outcome": "Work order generation errors prevented — correct content on all generated work orders",
+      "data_triggers": "Term definitions — reference only, no system actions triggered",
+      "intent": "LEARN",
+      "audience": "planner",
+      "keywords": [
+        "glossary",
+        "definition",
+        "standard work order",
+        "activities tab",
+        "trade STAR",
+        "WGC",
+        "ODS",
+        "suffix naming"
+      ]
+    }
+  },
+  "default_capability": "Maintenance Execution",
+  "default_process_stage": "Standard Work Order Creation → WGC Campaign Creation",
+  "default_outcome": "Work order generation errors prevented — correct content on all generated work orders"
+}
