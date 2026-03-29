@@ -385,7 +385,7 @@ function updateCounts() {
 
   try {
     const log = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
-    const gaps = log.filter(e => e.gap || e.gap_reason).length;
+    const gaps = log.filter(e => e.gap === true).length;
     const gapPill = document.getElementById('gapCount');
     if (gaps > 0) {
       gapPill.textContent = `${gaps} gap${gaps!==1?'s':''}`;
@@ -715,9 +715,18 @@ function renderAnalytics() {
   }
 
   const n = log.length;
-  const gaps = log.filter(e => e.gap || e.gap_reason);
+  // gap:true is the authoritative signal — gap_reason alone is not enough
+  // (agent can set gap_reason:"no_process_match" even when gap:false)
+  const gaps = log.filter(e => e.gap === true);
+  // Routing issues: process not matched but content was still retrieved
+  const routingIssues = log.filter(e => e.gap === false && e.gap_reason === 'no_process_match');
   const gapRate = Math.round(gaps.length / n * 100);
   const uniqueProcs = new Set(log.map(e => e.process).filter(Boolean)).size;
+
+  // Chunk hit frequency — which chunks are getting retrieved most
+  const chunkHits = {};
+  log.forEach(e => { (e.chunk_ids||[]).forEach(id => { chunkHits[id] = (chunkHits[id]||0) + 1; }); });
+  const maxChunk = Math.max(...Object.values(chunkHits), 1);
 
   // Intent distribution
   const intentCounts = {};
@@ -766,22 +775,22 @@ function renderAnalytics() {
         <div class="kpi-card ${gapRate >= 30 ? 'red' : gapRate >= 10 ? 'amber' : 'green'}">
           <div class="kpi-label">Gap Rate</div>
           <div class="kpi-value">${gapRate}%</div>
-          <div class="kpi-note">${gaps.length} unmatched queries</div>
+          <div class="kpi-note">${gaps.length} true gaps (gap:true)</div>
         </div>
         <div class="kpi-card green">
           <div class="kpi-label">Hit Rate</div>
           <div class="kpi-value">${100 - gapRate}%</div>
-          <div class="kpi-note">retrieved content</div>
+          <div class="kpi-note">content retrieved</div>
         </div>
-        <div class="kpi-card purple">
-          <div class="kpi-label">Process Domains</div>
-          <div class="kpi-value">${uniqueProcs}</div>
-          <div class="kpi-note">distinct areas hit</div>
+        <div class="kpi-card ${routingIssues.length > 0 ? 'amber' : 'purple'}">
+          <div class="kpi-label">Routing Issues</div>
+          <div class="kpi-value">${routingIssues.length}</div>
+          <div class="kpi-note">no_process_match w/ hit</div>
         </div>
         <div class="kpi-card amber">
-          <div class="kpi-label">Intent Types</div>
-          <div class="kpi-value">${Object.keys(intentCounts).length}</div>
-          <div class="kpi-note">of 5 total</div>
+          <div class="kpi-label">Process Domains</div>
+          <div class="kpi-value">${uniqueProcs}</div>
+          <div class="kpi-note">matched in router</div>
         </div>
       </div>
     </div>
@@ -831,7 +840,34 @@ function renderAnalytics() {
               </div>`).join('')}</div>`}
         </div>
       </div>
-    </div>
+
+      <!-- Routing issues callout -->
+      ${routingIssues.length > 0 ? `
+      <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px 16px;margin-top:12px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">⚠ ${routingIssues.length} Routing Issues — gap:false but no_process_match</div>
+        <div style="font-size:11px;color:var(--slate);margin-bottom:8px;">These queries retrieved chunks but the process router returned null. Content was served but from the wrong domain context. Fix: add process keywords to your agent's router for these terms.</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${routingIssues.slice(0,5).map(e => `
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--slate-light)">
+              <span style="color:var(--gold)">→</span> "${esc(e.query)}" · chunks: ${(e.chunk_ids||[]).join(', ')}
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Chunk frequency chart -->
+      <div class="chart-card" style="margin-top:12px;">
+        <div class="chart-title">Chunk Hit Frequency — most retrieved chunks</div>
+        <div class="bar-list">
+          ${Object.entries(chunkHits).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,cnt]) => `
+            <div class="bar-item">
+              <div class="bar-label-row">
+                <span class="bar-label" style="font-family:'DM Mono',monospace;font-size:10px">${id}</span>
+                <span class="bar-count">${cnt}×</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxChunk*100)}%;background:var(--teal)"></div></div>
+            </div>`).join('')}
+        </div>
+      </div>
 
     <!-- 5-Map corpus coverage -->
     <div>
@@ -859,17 +895,23 @@ function renderAnalytics() {
           <div class="log-col">Gap</div>
           <div class="log-col">Reason / Chunks</div>
         </div>
-        ${[...log].reverse().map(entry => `
+        ${[...log].reverse().map(e => `
           <div class="log-row">
-            <div class="log-query-text">${esc(entry.query||'—')}</div>
+            <div class="log-query-text">${esc(e.query||'—')}</div>
             <div class="log-cell">
-              ${entry.intent ? `<span class="ibadge ibadge-${entry.intent}">${entry.intent}</span>` : '<span style="color:var(--slate);font-size:10px">—</span>'}
+              ${e.intent ? `<span class="ibadge ibadge-${e.intent}">${e.intent}</span>` : '<span style="color:var(--slate);font-size:10px">—</span>'}
             </div>
-            <div class="log-cell" style="font-size:10px;color:var(--teal)">${entry.process||'—'}</div>
+            <div class="log-cell" style="font-size:10px;color:var(--teal)">${e.process||'<span style="color:var(--red)">null</span>'}</div>
             <div class="log-cell">
-              <span class="gap-badge ${(entry.gap||entry.gap_reason)?'gap-yes':'gap-no'}">${(entry.gap||entry.gap_reason)?'⚠ gap':'✓ hit'}</span>
+              <span class="gap-badge ${e.gap===true?'gap-yes':e.gap_reason?'gap-yes':'gap-no'}">${e.gap===true?'⚠ gap':e.gap_reason&&e.gap!==false?'⚠ gap':'✓ hit'}</span>
             </div>
-            <div class="log-cell" style="font-size:10px">${esc((entry.gap_reason||entry.chunks_hit||entry.reason||'').toString().substring(0,60))}</div>
+            <div class="log-cell" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--slate)">${
+              e.gap===true
+                ? esc(e.gap_reason||'unmatched')
+                : e.gap_reason === 'no_process_match'
+                  ? '<span style="color:var(--gold)">routing miss</span>'
+                  : (e.chunk_ids||[]).slice(0,2).map(id=>`<span style="color:var(--teal)">${id.replace('MAINT-','')}</span>`).join(' ')
+            }</div>
           </div>`).join('')}
       </div>
     </div>
