@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Operational Knowledge Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0d1b2e; --navy-mid:#142035; --navy-card:#19293f;
+  --navy-border:rgba(255,255,255,0.07);
+  --blue:#2563eb; --blue-glow:rgba(37,99,235,0.25);
+  --teal:#0ea5e9; --gold:#f59e0b; --gold-light:#fcd34d;
+  --white:#f1f5f9; --slate:#94a3b8; --slate-light:#cbd5e1;
+  --green:#10b981; --red:#f87171; --purple:#a78bfa; --orange:#fb923c;
+  --intent-do:#10b981; --intent-fix:#f87171; --intent-chk:#3b82f6;
+  --intent-con:#f59e0b; --intent-lrn:#a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+
+/* API screen */
+#apiScreen{position:fixed;inset:0;background:var(--navy);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
+.api-card{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:20px;padding:40px;max-width:480px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
+.api-card .logo{width:52px;height:52px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:white;margin-bottom:24px;box-shadow:0 0 30px var(--blue-glow);}
+.api-card h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.api-card p{font-size:13.5px;color:var(--slate);line-height:1.7;margin-bottom:24px;}
+.api-card p a{color:var(--teal);text-decoration:none;}
+.api-input-row{display:flex;gap:10px;}
+.api-input-row input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;color:var(--white);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .2s;}
+.api-input-row input:focus{border-color:rgba(37,99,235,0.5);}
+.api-input-row input::placeholder{color:var(--slate);}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:12px 20px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 4px 16px var(--blue-glow);}
+.btn-primary:hover{transform:translateY(-1px);}
+.api-note{margin-top:14px;font-size:11.5px;color:var(--slate);font-family:'DM Mono',monospace;line-height:1.6;}
+.loading-msg{margin-top:16px;font-size:12px;color:var(--teal);font-family:'DM Mono',monospace;display:none;}
+
+/* App */
+#app{display:none;flex-direction:column;height:100vh;position:relative;z-index:1;}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--navy-border);background:rgba(13,27,46,0.8);backdrop-filter:blur(12px);flex-shrink:0;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+.topbar-sub{font-size:11px;color:var(--slate);font-family:'DM Mono',monospace;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.pill{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 10px;border-radius:20px;border:1px solid;}
+.pill-green{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
+.pill-blue{color:var(--teal);border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);}
+.pill-gold{color:var(--gold);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);}
+.nav-link{font-size:12px;color:var(--slate);text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.nav-link:hover{color:var(--white);border-color:rgba(255,255,255,0.18);}
+.reset-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;color:var(--slate);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.reset-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
+
+/* Body */
+.body{display:flex;flex:1;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{width:300px;flex-shrink:0;border-right:1px solid var(--navy-border);overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:20px;background:rgba(13,27,46,0.5);}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
+.prompt-list{display:flex;flex-direction:column;gap:5px;}
+.prompt-chip{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:9px;cursor:pointer;transition:all .18s;text-align:left;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--slate-light);line-height:1.45;}
+.prompt-chip:hover{background:rgba(37,99,235,0.1);border-color:rgba(37,99,235,0.25);color:var(--white);transform:translateX(2px);}
+.itag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:4px;flex-shrink:0;margin-top:1px;}
+.itag-do{background:rgba(16,185,129,0.15);color:var(--intent-do);}
+.itag-fix{background:rgba(248,113,113,0.15);color:var(--intent-fix);}
+.itag-chk{background:rgba(59,130,246,0.15);color:var(--intent-chk);}
+.itag-lrn{background:rgba(167,139,250,0.15);color:var(--intent-lrn);}
+.itag-con{background:rgba(245,158,11,0.15);color:var(--intent-con);}
+
+/* Process filter */
+.process-filter{display:flex;flex-wrap:wrap;gap:6px;}
+.proc-btn{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--slate);cursor:pointer;transition:all .18s;}
+.proc-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
+.proc-btn.active{background:rgba(37,99,235,0.15);border-color:rgba(37,99,235,0.35);color:var(--teal);}
+
+/* Route panel */
+.route-panel{background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px;display:none;}
+.route-panel.show{display:block;}
+.route-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px;}
+.route-row:last-child{border-bottom:none;}
+.rl{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);flex-shrink:0;}
+.rv{font-family:'DM Mono',monospace;font-size:10px;color:var(--white);text-align:right;}
+.chunk-pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(14,165,233,0.12);color:var(--teal);margin:1px 1px 0 0;}
+
+/* Chat */
+.chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth;}
+.messages::-webkit-scrollbar{width:4px;}
+.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+
+/* Empty state */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:60px 40px;}
+.empty-orb{width:72px;height:72px;background:linear-gradient(135deg,rgba(37,99,235,0.2),rgba(14,165,233,0.2));border:1px solid rgba(37,99,235,0.2);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;}
+.empty h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+.empty p{font-size:13.5px;color:var(--slate);max-width:340px;line-height:1.7;}
+.empty-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;}
+.empty-chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--slate-light);cursor:pointer;transition:all .18s;}
+.empty-chip:hover{background:rgba(37,99,235,0.1);border-color:rgba(37,99,235,0.3);color:var(--white);}
+
+/* Messages */
+.msg{display:flex;gap:14px;animation:fadein .25s ease;max-width:820px;}
+@keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.msg-avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px;}
+.msg.user .msg-avatar{background:rgba(37,99,235,0.2);border:1px solid rgba(37,99,235,0.3);}
+.msg.bot .msg-avatar{background:linear-gradient(135deg,rgba(37,99,235,0.25),rgba(14,165,233,0.25));border:1px solid rgba(14,165,233,0.25);}
+.msg-body{flex:1;}
+.msg-who{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+.msg.user .msg-who{color:#3b82f6;}
+.msg.bot .msg-who{color:var(--teal);}
+.msg-text{font-size:14px;line-height:1.75;color:var(--slate-light);white-space:pre-wrap;word-break:break-word;}
+.msg.user .msg-text{color:var(--white);font-size:14.5px;}
+.typing .msg-text{display:flex;align-items:center;gap:10px;color:var(--slate);font-size:13px;}
+.dots{display:flex;gap:4px;}
+.dots span{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:bop 1.2s infinite;opacity:.6;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bop{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-7px);opacity:1;}}
+
+/* Input */
+.input-bar{border-top:1px solid var(--navy-border);padding:16px 24px;background:rgba(13,27,46,0.7);backdrop-filter:blur(12px);flex-shrink:0;}
+.input-inner{display:flex;gap:10px;align-items:flex-end;max-width:820px;}
+textarea#qInput{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:13px 16px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;transition:border-color .2s,box-shadow .2s;line-height:1.5;min-height:50px;max-height:140px;}
+textarea#qInput::placeholder{color:var(--slate);}
+textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+.send{width:50px;height:50px;background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;box-shadow:0 4px 16px var(--blue-glow);}
+.send:hover{transform:translateY(-1px);}
+.send:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.send svg{width:20px;height:20px;fill:white;}
+.input-hint{margin-top:8px;font-size:11px;color:var(--slate);font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- API Key Screen -->
+<div id="apiScreen">
+  <div class="api-card">
+    <div class="logo">OK</div>
+    <h2>Operational Knowledge Agent</h2>
+    <p>This agent answers questions across all processes in the knowledge base — Task Plans, WGC Campaigns, Standard Work Orders, and more as they are added.<br><br>
+    Enter your Anthropic API key to start. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.</p>
+    <div class="api-input-row">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." onkeydown="if(event.key==='Enter') startApp()"/>
+      <button class="btn-primary" onclick="startApp()">Start →</button>
+    </div>
+    <div class="api-note">🔒 Your key is stored only in this browser session and sent directly to Anthropic's API only.</div>
+    <div class="loading-msg" id="loadingMsg">⟳ Loading knowledge base...</div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">OK</div>
+      <div>
+        <div class="topbar-title">Operational Knowledge Agent</div>
+        <div class="topbar-sub" id="topbarSub">Loading...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill pill-green">● Live</span>
+      <span class="pill pill-blue" id="corpusPill">0 chunks</span>
+      <span class="pill pill-gold">Neela Thiagarajan</span>
+      <a href="knowledge_graph.html" class="nav-link">Knowledge Graph →</a>
+      <a href="index.html" class="nav-link">Editor →</a>
+      <button class="reset-btn" onclick="resetChat()">New Chat</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="sidebar">
+
+      <!-- Process filter -->
+      <div>
+        <div class="section-label">Filter by process</div>
+        <div class="process-filter" id="processFilter">
+          <button class="proc-btn active" data-proc="all" onclick="setProcess('all',this)">All</button>
+        </div>
+      </div>
+
+      <!-- Dynamic prompts from corpus -->
+      <div>
+        <div class="section-label">Try these</div>
+        <div class="prompt-list" id="promptList">
+          <div style="font-size:12px;color:var(--slate)">Loading prompts...</div>
+        </div>
+      </div>
+
+      <!-- Route panel -->
+      <div class="route-panel" id="routePanel">
+        <div class="section-label" style="margin-bottom:10px">Last retrieval</div>
+        <div class="route-row"><span class="rl">Process</span><span class="rv" id="rProcess">—</span></div>
+        <div class="route-row"><span class="rl">Intent</span><span class="rv" id="rIntent">—</span></div>
+        <div class="route-row" style="flex-direction:column;gap:6px">
+          <span class="rl">Chunks retrieved</span>
+          <div id="rChunks"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="chat-wrap">
+      <div class="messages" id="messages">
+        <div class="empty" id="emptyState">
+          <div class="empty-orb">🗂️</div>
+          <h3>Ask anything across the knowledge base</h3>
+          <p>Questions are routed by process and intent before retrieval. New processes appear automatically as they are added.</p>
+          <div class="empty-chips" id="emptyChips"></div>
+        </div>
+      </div>
+      <div class="input-bar">
+        <div class="input-inner">
+          <textarea id="qInput" placeholder="Ask anything across the knowledge base..." rows="1"
+            onkeydown="handleKey(event)" oninput="grow(this)"></textarea>
+          <button class="send" id="sendBtn" onclick="sendMsg()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let API_KEY = '';
+let CORPUS = [];
+let PROCESS_MAP = {};
+let DOCS = [];
+let loading = false;
+let activeProcess = 'all';
+
+// ── Intent and contract maps ──────────────────────────────────────────────
+const INTENT_MAP = {
+  "how do i":"DO","how to":"DO","steps to":"DO","step by step":"DO",
+  "what is":"LEARN","explain":"LEARN","difference":"LEARN","what happens":"LEARN","why":"LEARN",
+  "not working":"FIX","error":"FIX","fails":"FIX","problem":"FIX","troubleshoot":"FIX",
+  "missing":"FIX","not appearing":"FIX","not visible":"FIX","not closing":"FIX","not created":"FIX",
+  "rule":"CONSTRAINT","critical":"CONSTRAINT","must":"CONSTRAINT","cannot":"CONSTRAINT",
+  "prerequisite":"CHECK","before":"CHECK","what do i need":"CHECK","checklist":"CHECK",
+};
+
+const CONTRACTS = {
+  DO:"Respond with clear numbered steps only. Be concise and actionable. End with a verification step.",
+  FIX:"Respond with labeled sections: Problem / Cause / Fix. State root cause explicitly before fix steps.",
+  CHECK:"Respond with a checkbox-style bullet checklist. Each item must be independently verifiable.",
+  CONSTRAINT:"Respond with a bullet list of rules. For each rule state what happens if violated.",
+  LEARN:"Respond in clear concise prose, 3-5 sentences max per concept. Focus on clarity.",
+};
+
+const INTENT_TAG = {
+  DO:'itag-do',FIX:'itag-fix',CHECK:'itag-chk',CONSTRAINT:'itag-con',LEARN:'itag-lrn'
+};
+
+// ── Load corpus from manifest + JSON files ────────────────────────────────
+async function loadCorpus(){
+  try {
+    // Load manifest
+    const manifestRes = await fetch('knowledge_base/manifest.json');
+    if(!manifestRes.ok) throw new Error('manifest.json not found');
+    const manifest = await manifestRes.json();
+
+    CORPUS = [];
+    PROCESS_MAP = {};
+    DOCS = [];
+
+    for(const filename of manifest.docs){
+      try {
+        const res = await fetch(`knowledge_base/${filename}`);
+        if(!res.ok) continue;
+        const doc = await res.json();
+
+        const docId   = doc.doc_id;
+        const process = doc.process;
+        const systems = doc.systems || [];
+        const dataEntities = doc.data_entities || [];
+        const source  = doc.source || '';
+
+        // Build process map from keywords
+        (doc.process_keywords || []).forEach(kw => {
+          PROCESS_MAP[kw.toLowerCase()] = process;
+        });
+
+        // Build chunks from sections
+        const sections = doc.sections || {};
+        Object.entries(sections).forEach(([sectionName, section]) => {
+          if(!section.content?.trim()) return;
+          CORPUS.push({
+            chunk_id: `${docId}-${sectionName}`,
+            process, doc_id: docId,
+            section: sectionName,
+            intent: section.intent || 'LEARN',
+            audience: section.audience || 'all',
+            content: section.content,
+            keywords: section.keywords || [],
+            business_capability: section.business_capability || '',
+            business_outcome: section.business_outcome || '',
+            process_stage: section.process_stage || '',
+            systems, data_entities: dataEntities,
+            data_triggers: section.data_triggers || '',
+            source,
+          });
+        });
+
+        DOCS.push({ doc_id: docId, process, title: doc.title, chunks: Object.keys(sections).length });
+      } catch(e){ console.warn(`Failed to load ${filename}:`, e); }
+    }
+
+    return true;
+  } catch(e){
+    console.error('Failed to load manifest:', e);
+    return false;
+  }
+}
+
+// ── Routing ───────────────────────────────────────────────────────────────
+function detectIntent(q){
+  const ql = q.toLowerCase();
+  for(const [trigger, intent] of Object.entries(INTENT_MAP)){
+    if(ql.includes(trigger)) return intent;
+  }
+  return null;
+}
+
+function detectProcess(q){
+  const ql = q.toLowerCase();
+  for(const [kw, proc] of Object.entries(PROCESS_MAP)){
+    if(ql.includes(kw)) return proc;
+  }
+  return null;
+}
+
+function retrieve(query, topK=3){
+  const ql = query.toLowerCase();
+  const intent = detectIntent(query);
+  const process = activeProcess !== 'all' ? activeProcess : detectProcess(query);
+
+  const scored = CORPUS
+    .filter(c => activeProcess === 'all' || c.process === activeProcess)
+    .map(chunk => {
+      let score = 0;
+      if(process && chunk.process === process) score += 10;
+      else if(!process) score += 2;
+      if(intent && chunk.intent === intent) score += 8;
+      chunk.keywords.forEach(kw => { if(ql.includes(kw.toLowerCase())) score += 3; });
+      const qw = new Set(ql.split(/\s+/));
+      const cw = new Set(chunk.content.toLowerCase().split(/\s+/));
+      score += [...qw].filter(w => cw.has(w) && w.length > 3).length;
+      return { score, chunk };
+    })
+    .filter(s => s.score > 0)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, topK)
+    .map(s => s.chunk);
+
+  return { chunks: scored, intent, process };
+}
+
+// ── Build context envelope ────────────────────────────────────────────────
+function buildContext(chunks){
+  const caps = [...new Set(chunks.map(c=>c.business_capability).filter(Boolean))];
+  const stages = [...new Set(chunks.map(c=>c.process_stage).filter(Boolean))];
+  const systems = [...new Set(chunks.flatMap(c=>c.systems))];
+  const entities = [...new Set(chunks.flatMap(c=>c.data_entities))];
+  const triggers = [...new Set(chunks.map(c=>c.data_triggers).filter(Boolean))];
+
+  const parts = [];
+  if(caps.length || stages.length){
+    let ctx = 'BUSINESS + PROCESS CONTEXT:';
+    if(caps.length) ctx += `\n  Business Capability: ${caps.join(', ')}`;
+    if(stages.length) ctx += `\n  Process Stage: ${stages.join(', ')}`;
+    parts.push(ctx);
+  }
+  if(systems.length) parts.push(`SYSTEMS INVOLVED: ${systems.join(', ')}`);
+  if(entities.length || triggers.length){
+    let ctx = 'DATA LAYER:';
+    if(entities.length) ctx += `\n  Key Entities: ${entities.join(', ')}`;
+    if(triggers.length) ctx += `\n  Data Triggers: ${triggers.join('; ')}`;
+    parts.push(ctx);
+  }
+  parts.push('KNOWLEDGE CONTENT:\n' + chunks.map(c =>
+    `[${c.doc_id} | ${c.section.toUpperCase()} | ${c.intent}]\n${c.content.trim()}`
+  ).join('\n\n---\n\n'));
+  return parts.join('\n\n');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────
+function buildSidebar(){
+  // Process filter buttons
+  const filter = document.getElementById('processFilter');
+  const processes = [...new Set(CORPUS.map(c=>c.process))];
+  processes.forEach(proc => {
+    const btn = document.createElement('button');
+    btn.className = 'proc-btn';
+    btn.dataset.proc = proc;
+    btn.textContent = proc;
+    btn.onclick = () => setProcess(proc, btn);
+    filter.appendChild(btn);
+  });
+
+  // Generate prompts from corpus
+  const prompts = [];
+  DOCS.forEach(doc => {
+    const docChunks = CORPUS.filter(c => c.doc_id === doc.doc_id);
+    const intents = new Set(docChunks.map(c=>c.intent));
+    const proc = doc.process.toLowerCase().replace(/-/g,' ');
+    if(intents.has('DO'))         prompts.push({intent:'DO',   tag:'itag-do',  text:`How do I create a ${proc}?`, proc:doc.process});
+    if(intents.has('FIX'))        prompts.push({intent:'FIX',  tag:'itag-fix', text:`Something is not working in ${proc}`, proc:doc.process});
+    if(intents.has('CONSTRAINT')) prompts.push({intent:'CONSTRAINT',tag:'itag-con',text:`Critical rules for ${proc}`, proc:doc.process});
+    if(intents.has('CHECK'))      prompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`, proc:doc.process});
+    if(intents.has('LEARN'))      prompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`, proc:doc.process});
+  });
+
+  const list = document.getElementById('promptList');
+  list.innerHTML = '';
+  prompts.slice(0,12).forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'prompt-chip';
+    btn.innerHTML = `<span class="itag ${p.tag}">${p.intent}</span>${p.text}`;
+    btn.onclick = () => ask(p.text);
+    list.appendChild(btn);
+  });
+
+  // Empty state chips
+  const chips = document.getElementById('emptyChips');
+  chips.innerHTML = '';
+  prompts.slice(0,4).forEach(p => {
+    const span = document.createElement('span');
+    span.className = 'empty-chip';
+    span.textContent = p.text;
+    span.onclick = () => ask(p.text);
+    chips.appendChild(span);
+  });
+
+  // Update topbar
+  const processes2 = [...new Set(CORPUS.map(c=>c.process))];
+  document.getElementById('topbarSub').textContent =
+    `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
+  document.getElementById('corpusPill').textContent = `${CORPUS.length} chunks`;
+}
+
+function setProcess(proc, btn){
+  activeProcess = proc;
+  document.querySelectorAll('.proc-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function grow(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,140)+'px';
+}
+
+function handleKey(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
+}
+
+function ask(text){
+  document.getElementById('qInput').value = text;
+  grow(document.getElementById('qInput'));
+  sendMsg();
+}
+
+function removeEmpty(){
+  const e = document.getElementById('emptyState');
+  if(e) e.remove();
+}
+
+function addMsg(role, text, isTyping=false){
+  removeEmpty();
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}${isTyping?' typing':''}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role==='user'?'👤':'🤖'}</div>
+    <div class="msg-body">
+      <div class="msg-who">${role==='user'?'You':'Knowledge Agent'}</div>
+      <div class="msg-text">${isTyping
+        ?'<div class="dots"><span></span><span></span><span></span></div> Routing and retrieving...'
+        :htmlEsc(text)}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function htmlEsc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showRoute(intent, process, chunks){
+  const panel = document.getElementById('routePanel');
+  panel.classList.add('show');
+  document.getElementById('rProcess').textContent = process || 'universal';
+  document.getElementById('rIntent').textContent  = intent  || 'undetected';
+  document.getElementById('rChunks').innerHTML = chunks.map(c =>
+    `<span class="chunk-pill">${c.chunk_id}</span>`).join('');
+}
+
+function resetChat(){
+  const m = document.getElementById('messages');
+  m.innerHTML = `<div class="empty" id="emptyState">
+    <div class="empty-orb">🗂️</div>
+    <h3>Ask anything across the knowledge base</h3>
+    <p>Questions are routed by process and intent before retrieval.</p>
+    <div class="empty-chips" id="emptyChips"></div>
+  </div>`;
+  // Re-add chips
+  const prompts = [];
+  DOCS.slice(0,4).forEach(doc => {
+    const proc = doc.process.toLowerCase().replace(/-/g,' ');
+    prompts.push(`How do I create a ${proc}?`);
+  });
+  const chips = document.getElementById('emptyChips');
+  prompts.forEach(p => {
+    const span = document.createElement('span');
+    span.className = 'empty-chip';
+    span.textContent = p;
+    span.onclick = () => ask(p);
+    chips.appendChild(span);
+  });
+  document.getElementById('routePanel').classList.remove('show');
+}
+
+// ── Send message ──────────────────────────────────────────────────────────
+async function sendMsg(){
+  const input = document.getElementById('qInput');
+  const query = input.value.trim();
+  if(!query || loading) return;
+
+  loading = true;
+  input.value = '';
+  grow(input);
+  document.getElementById('sendBtn').disabled = true;
+
+  addMsg('user', query);
+
+  const { chunks, intent, process } = retrieve(query);
+  showRoute(intent, process, chunks);
+
+  const typingEl = addMsg('bot', '', true);
+
+  if(!chunks.length){
+    typingEl.remove();
+    addMsg('bot', 'No relevant content found for this query. Try rephrasing or check that the relevant How-To has been added to the knowledge base.');
+    loading = false;
+    document.getElementById('sendBtn').disabled = false;
+    return;
+  }
+
+  const context = buildContext(chunks);
+  const contract = intent ? (CONTRACTS[intent] || '') : '';
+  const system = `You are a precise operational knowledge assistant for an Enterprise Asset Management system. Answer based ONLY on the provided context. Do not add information not present in the context. ${contract}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:700,
+        system,
+        messages:[{role:'user', content:`Context:\n${context}\n\nQuestion: ${query}`}]
+      })
+    });
+    const data = await res.json();
+    const answer = data.content?.[0]?.text || 'No response received.';
+    typingEl.remove();
+    addMsg('bot', answer);
+  } catch(err){
+    typingEl.remove();
+    addMsg('bot', `⚠️ Could not reach the API. Check your key and internet connection.\n\nError: ${err.message}`);
+  }
+
+  loading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+// ── Start app ─────────────────────────────────────────────────────────────
+async function startApp(){
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if(!key || !key.startsWith('sk-')){
+    alert('Please enter a valid Anthropic API key starting with sk-');
+    return;
+  }
+  API_KEY = key;
+
+  document.getElementById('loadingMsg').style.display = 'block';
+
+  const ok = await loadCorpus();
+  if(!ok || CORPUS.length === 0){
+    document.getElementById('loadingMsg').textContent =
+      '⚠️ Could not load knowledge base. Make sure manifest.json and JSON files are in knowledge_base/';
+    return;
+  }
+
+  document.getElementById('apiScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  buildSidebar();
+}
+</script>
+</body>
+</html>
