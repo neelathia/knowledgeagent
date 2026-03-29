@@ -270,14 +270,30 @@ function buildGraph(docs){
     const fixChunk  = docChunks.find(c=>c.intent==='FIX');
     const ruChunk   = docChunks.find(c=>c.intent==='CONSTRAINT');
 
+    // Connect chunks → systems
     if(doChunk){
-      (doc.systems||[]).slice(0,2).forEach(s => crossLinks.push({source:doChunk.id,target:`sys-${s}`,label:'created in'}));
-      (doc.related_processes||[]).slice(0,2).forEach(p => crossLinks.push({source:doChunk.id,target:`proc-${p}`,label:'used by'}));
+      (doc.systems||[]).forEach(s => crossLinks.push({source:doChunk.id,target:`sys-${s}`,label:'created in'}));
+      (doc.related_processes||[]).forEach(p => crossLinks.push({source:doChunk.id,target:`proc-${p}`,label:'used by'}));
     }
-    if(fixChunk && doc.systems?.[1]) crossLinks.push({source:fixChunk.id,target:`sys-${doc.systems[1]}`,label:'relates to'});
-    if(ruChunk  && doc.systems?.[0]) crossLinks.push({source:ruChunk.id, target:`sys-${doc.systems[0]}`,label:'enforced by'});
-    (doc.data_entities||[]).slice(0,2).forEach(e => {
-      if(doChunk) crossLinks.push({source:doChunk.id,target:`data-${e}`,label:'produces'});
+    if(fixChunk)(doc.systems||[]).slice(0,2).forEach(s => crossLinks.push({source:fixChunk.id,target:`sys-${s}`,label:'relates to'}));
+    if(ruChunk) (doc.systems||[]).slice(0,1).forEach(s => crossLinks.push({source:ruChunk.id,target:`sys-${s}`,label:'enforced by'}));
+
+    // Connect ALL data entities to relevant chunks
+    (doc.data_entities||[]).forEach((e,i) => {
+      const eid = `data-${e}`;
+      // Spread connections across different intent chunks for visual variety
+      if(i % 4 === 0 && doChunk)   crossLinks.push({source:doChunk.id,  target:eid, label:'produces'});
+      if(i % 4 === 1 && ruChunk)   crossLinks.push({source:ruChunk.id,  target:eid, label:'governs'});
+      if(i % 4 === 2 && fixChunk)  crossLinks.push({source:fixChunk.id, target:eid, label:'troubleshoots'});
+      if(i % 4 === 3 && doChunk)   crossLinks.push({source:doChunk.id,  target:eid, label:'references'});
+      // Fallback — always connect to DO chunk if no other chunk matched
+      if(i % 4 > 3 && doChunk)     crossLinks.push({source:doChunk.id,  target:eid, label:'uses'});
+    });
+    // Make sure every data entity has at least one connection
+    (doc.data_entities||[]).forEach(e => {
+      const eid = `data-${e}`;
+      const alreadyConnected = crossLinks.some(l => l.target === eid || l.source === eid);
+      if(!alreadyConnected && doChunk) crossLinks.push({source:doChunk.id, target:eid, label:'uses'});
     });
   });
 
