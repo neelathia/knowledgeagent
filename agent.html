@@ -532,11 +532,14 @@ function resetChat(){
 // ── Analytics logging ────────────────────────────────────────────────────
 function logQuery(query, intent, process, chunks){
   const isGap = chunks.length === 0;
-  const isWeak = chunks.length > 0 && chunks.every(c => c.intent !== intent);
-  const gapReason = !process && !intent ? 'no_match' :
-                    !process ? 'no_process_match' :
-                    chunks.length === 0 ? 'no_chunks' :
-                    isWeak ? 'weak_match' : null;
+  // Flag as gap if no process detected — means question is about unknown topic
+  const noProcess = !process;
+  // Flag as weak if chunks retrieved but none match the detected intent
+  const isWeak = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
+  const gapReason = chunks.length === 0 ? 'no_chunks' :
+                    noProcess ? 'no_process_match' :
+                    isWeak ? 'weak_intent_match' : null;
+  const isActualGap = isGap || noProcess || isWeak;
 
   const entry = {
     ts: new Date().toISOString(),
@@ -545,7 +548,7 @@ function logQuery(query, intent, process, chunks){
     process: process || null,
     chunks_retrieved: chunks.length,
     chunk_ids: chunks.map(c=>c.chunk_id),
-    gap: isGap || isWeak,
+    gap: isActualGap,
     gap_reason: gapReason
   };
 
@@ -562,7 +565,7 @@ function logQuery(query, intent, process, chunks){
   } catch(e){ console.warn('Log save failed:', e); }
 
   // Show gap banner if gap
-  if(entry.gap) updateGapBanner();
+  if(isActualGap) updateGapBanner();
 }
 
 function updateGapBanner(){
