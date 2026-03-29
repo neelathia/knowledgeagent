@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Knowledge Base Editor</title>
+<title>OKA — Knowledge Base Editor</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -18,7 +18,7 @@
 body{background:var(--navy);color:var(--white);font-family:'Poppins',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
-/* Topbar */
+/* ── Topbar ── */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:58px;border-bottom:1px solid var(--navy-border);background:rgba(15,30,53,0.9);backdrop-filter:blur(12px);flex-shrink:0;position:relative;z-index:10;}
 .topbar-left{display:flex;align-items:center;gap:12px;}
 .logo{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;}
@@ -28,11 +28,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .pill{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;}
 .pill-green{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
 .pill-blue{color:var(--teal);border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);}
+.pill-amber{color:var(--gold);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);}
 
-/* Layout */
-.app{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+/* ── Page-level tab switcher ── */
+.page-tabs{display:flex;gap:2px;margin-left:20px;}
+.page-tab{padding:6px 16px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--slate);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;cursor:pointer;transition:all .15s;}
+.page-tab:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+.page-tab.active{color:var(--teal);background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);}
 
-/* Sidebar */
+/* ── Pages ── */
+.page{display:none;flex:1;overflow:hidden;position:relative;z-index:1;}
+.page.active{display:flex;}
+
+/* ── Layout (editor page) ── */
+.app{flex:1;overflow:hidden;display:flex;}
 .sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--navy-border);display:flex;flex-direction:column;background:rgba(15,30,53,0.5);}
 .sidebar-header{padding:16px 16px 10px;border-bottom:1px solid var(--navy-border);}
 .sidebar-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
@@ -49,11 +58,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .doc-item-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
 .doc-item-status{display:flex;align-items:center;gap:6px;margin-top:4px;}
 .status-dot{width:6px;height:6px;border-radius:50%;}
-
-/* Main editor */
 .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-
-/* Doc header */
 .doc-header{padding:16px 24px 0;border-bottom:1px solid var(--navy-border);flex-shrink:0;}
 .doc-meta-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .doc-meta-input{background:rgba(255,255,255,0.05);border:1px solid var(--navy-border);border-radius:8px;padding:7px 12px;color:var(--white);font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
@@ -62,14 +67,21 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .doc-meta-input.id-input{font-family:'DM Mono',monospace;font-size:12px;width:160px;}
 .doc-meta-input.process-input{font-family:'DM Mono',monospace;font-size:12px;width:160px;}
 
-/* Section tabs */
+/* Defaults row */
+.doc-defaults-row{display:grid;grid-template-columns:1fr 2fr 2fr;gap:10px;margin-bottom:14px;}
+.doc-default-field{display:flex;flex-direction:column;gap:4px;}
+.hier-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);}
+.hier-input{background:rgba(255,255,255,0.05);border:1px solid var(--navy-border);border-radius:8px;padding:7px 12px;color:var(--white);font-family:'Poppins',sans-serif;font-size:12px;outline:none;transition:border-color .2s;width:100%;}
+.hier-input:focus{border-color:rgba(37,99,235,0.4);}
+
+/* Hierarchy row */
+.hier-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px 24px;border-bottom:1px solid var(--navy-border);flex-shrink:0;background:rgba(15,30,53,0.3);}
+
 .section-tabs{display:flex;gap:2px;padding:0 24px;}
 .section-tab{padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;border:1px solid transparent;border-bottom:none;display:flex;align-items:center;gap:6px;color:var(--slate);}
 .section-tab:hover{color:var(--white);background:rgba(255,255,255,0.04);}
 .section-tab.active{color:var(--white);background:var(--navy-card);border-color:var(--navy-border);}
 .intent-badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;}
-
-/* Section editor */
 .section-body{flex:1;overflow-y:auto;padding:20px 24px;}
 .section-body::-webkit-scrollbar{width:4px;}
 .section-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
@@ -80,9 +92,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .field-textarea{resize:vertical;min-height:120px;line-height:1.6;}
 .field-textarea.content-area{min-height:280px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.intent-select{appearance:none;cursor:pointer;}
-
-/* Metadata panel */
 .meta-panel{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:16px;margin-bottom:16px;}
 .meta-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .tags-input-wrap{display:flex;flex-wrap:wrap;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;min-height:44px;cursor:text;}
@@ -90,8 +99,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .tag-remove{background:none;border:none;color:var(--slate);cursor:pointer;font-size:13px;line-height:1;padding:0;}
 .tag-remove:hover{color:var(--red);}
 .tags-input{background:none;border:none;outline:none;color:var(--white);font-size:12px;font-family:'DM Mono',monospace;min-width:100px;flex:1;}
-
-/* Bottom action bar */
 .action-bar{padding:14px 24px;border-top:1px solid var(--navy-border);background:rgba(15,30,53,0.8);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .action-bar-left{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--slate);}
 .save-btn{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:11px 24px;color:white;font-family:'Poppins',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,0.3);}
@@ -101,25 +108,119 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .save-status{font-family:'DM Mono',monospace;font-size:11px;transition:all .3s;}
 .save-status.saved{color:var(--green);}
 .save-status.unsaved{color:var(--gold);}
-
-/* Recommendations panel */
-.rec-panel{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;margin:12px 16px 0;}
-.rec-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fcd34d;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
-.rec-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;}
-.rec-item:last-child{border-bottom:none;}
-.rec-proc{font-family:'DM Mono',monospace;font-size:11px;color:#fcd34d;margin-bottom:3px;}
-.rec-query{color:var(--slate);font-size:11px;margin-bottom:3px;}
-.rec-action{color:var(--teal);font-size:11px;}
-.rec-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);float:right;}
-.rec-empty{font-size:12px;color:var(--slate);text-align:center;padding:8px 0;}
-
-/* Empty state */
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:40px;}
 .empty-icon{width:64px;height:64px;background:linear-gradient(135deg,rgba(37,99,235,0.15),rgba(14,165,233,0.15));border:1px solid rgba(37,99,235,0.2);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;}
 .empty-state h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
 .empty-state p{font-size:13px;color:var(--slate);max-width:300px;line-height:1.7;}
 
-/* Modal */
+/* ══════════════════════════════
+   ANALYTICS PAGE
+══════════════════════════════ */
+.analytics-page{flex-direction:column;overflow-y:auto;padding:24px;gap:20px;}
+.analytics-page::-webkit-scrollbar{width:4px;}
+.analytics-page::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+
+.a-section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--slate-light);letter-spacing:.04em;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.a-section-title::after{content:'';flex:1;height:1px;background:var(--navy-border);}
+
+/* KPI cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi-card.blue::before{background:linear-gradient(90deg,var(--blue),var(--teal));}
+.kpi-card.green::before{background:var(--green);}
+.kpi-card.amber::before{background:var(--gold);}
+.kpi-card.purple::before{background:var(--purple);}
+.kpi-card.red::before{background:var(--red);}
+.kpi-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:8px;}
+.kpi-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:4px;}
+.kpi-card.blue .kpi-value{color:var(--teal);}
+.kpi-card.green .kpi-value{color:var(--green);}
+.kpi-card.amber .kpi-value{color:var(--gold);}
+.kpi-card.purple .kpi-value{color:var(--purple);}
+.kpi-card.red .kpi-value{color:var(--red);}
+.kpi-note{font-size:10px;color:var(--slate);}
+
+/* Chart grid */
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.chart-card{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:18px 20px;}
+.chart-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-bottom:14px;}
+
+/* Bar chart */
+.bar-list{display:flex;flex-direction:column;gap:9px;}
+.bar-item{display:flex;flex-direction:column;gap:3px;}
+.bar-label-row{display:flex;justify-content:space-between;}
+.bar-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--white);}
+.bar-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
+.bar-track{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+/* 5-Map coverage */
+.map-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.map-item{display:flex;flex-direction:column;gap:5px;}
+.map-header{display:flex;justify-content:space-between;}
+.map-name{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--slate);}
+.map-pct{font-family:'DM Mono',monospace;font-size:10px;color:var(--green);}
+.map-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
+.map-bar-fill{height:100%;background:var(--green);border-radius:2px;}
+.map-item.warn .map-pct{color:var(--gold);}
+.map-item.warn .map-bar-fill{background:var(--gold);}
+.map-item.danger .map-pct{color:var(--red);}
+.map-item.danger .map-bar-fill{background:var(--red);}
+
+/* Query log */
+.query-log-table{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;overflow:hidden;}
+.log-head{display:grid;grid-template-columns:2fr 80px 90px 80px 1fr;gap:0;padding:10px 16px;background:rgba(15,30,53,0.6);border-bottom:1px solid var(--navy-border);}
+.log-col{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--slate);}
+.log-row{display:grid;grid-template-columns:2fr 80px 90px 80px 1fr;gap:0;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;transition:background .12s;}
+.log-row:last-child{border-bottom:none;}
+.log-row:hover{background:rgba(255,255,255,0.02);}
+.log-query-text{font-size:11px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px;}
+.log-cell{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
+.ibadge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.05em;}
+.ibadge-DO        {background:rgba(16,185,129,.15);color:var(--green);}
+.ibadge-FIX       {background:rgba(248,113,113,.15);color:var(--red);}
+.ibadge-CHECK     {background:rgba(59,130,246,.15);color:#60a5fa;}
+.ibadge-CONSTRAINT{background:rgba(245,158,11,.15);color:var(--gold);}
+.ibadge-LEARN     {background:rgba(167,139,250,.15);color:var(--purple);}
+.gap-badge{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;}
+.gap-yes{background:rgba(248,113,113,.1);color:var(--red);}
+.gap-no {background:rgba(16,185,129,.1);color:var(--green);}
+
+/* Corpus health */
+.corpus-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.corpus-card{background:rgba(255,255,255,0.02);border:1px solid var(--navy-border);border-radius:10px;padding:14px;}
+.corpus-proc{font-family:'DM Mono',monospace;font-size:11px;color:var(--teal);margin-bottom:6px;}
+.corpus-title{font-size:12px;color:var(--white);margin-bottom:8px;font-weight:500;}
+.corpus-sections{display:flex;gap:3px;margin-bottom:6px;}
+.sec-pip{width:10px;height:10px;border-radius:2px;}
+.sec-pip.filled{background:var(--green);}
+.sec-pip.empty{background:rgba(255,255,255,0.08);}
+.corpus-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--slate);}
+
+/* Empty analytics */
+.analytics-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px;text-align:center;color:var(--slate);}
+.analytics-empty-icon{font-size:36px;opacity:.4;}
+.analytics-empty h3{font-family:'Syne',sans-serif;font-size:16px;color:var(--white);}
+.analytics-empty p{font-size:12px;line-height:1.7;max-width:340px;}
+
+/* Controls strip */
+.analytics-controls{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.a-btn{padding:7px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--slate-light);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;letter-spacing:.04em;}
+.a-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
+.a-btn.danger{color:var(--red);border-color:rgba(248,113,113,0.2);}
+.a-btn.danger:hover{background:rgba(248,113,113,0.08);}
+.a-ts{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
+
+/* Recommendations sidebar in analytics */
+.gap-list{display:flex;flex-direction:column;gap:8px;}
+.gap-item{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:8px;padding:10px 12px;}
+.gap-proc{font-family:'DM Mono',monospace;font-size:11px;color:#fcd34d;margin-bottom:3px;}
+.gap-query{font-size:11px;color:var(--slate);margin-bottom:4px;}
+.gap-action{font-size:11px;color:var(--teal);}
+
+/* Modals */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
 .modal{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
 .modal h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px;}
@@ -127,14 +228,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
 .modal-cancel{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 18px;color:var(--slate);font-size:13px;cursor:pointer;}
 .modal-confirm{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:9px;padding:9px 20px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
-
-/* JSON preview */
 .json-modal{max-width:680px;max-height:80vh;display:flex;flex-direction:column;}
 .json-preview{flex:1;overflow-y:auto;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;color:rgba(228,230,234,0.9);white-space:pre-wrap;margin-bottom:16px;max-height:55vh;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
 </style>
 </head>
 <body>
 
+<!-- ── Topbar ── -->
 <div class="topbar">
   <div class="topbar-left">
     <div class="logo">OK</div>
@@ -142,32 +245,49 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="topbar-title">Knowledge Base Editor</div>
       <div class="topbar-sub">Operational Knowledge Architecture · Neela Thiagarajan</div>
     </div>
+    <div class="page-tabs">
+      <button class="page-tab active" onclick="switchPage('editor')">Editor</button>
+      <button class="page-tab" onclick="switchPage('analytics')">Analytics</button>
+    </div>
   </div>
   <div class="topbar-right">
     <span class="pill pill-green" id="docCount">0 docs</span>
     <span class="pill pill-blue" id="chunkCount">0 chunks</span>
+    <span class="pill pill-amber" id="gapCount" style="display:none">0 gaps</span>
   </div>
 </div>
 
-<div class="app">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-label">How-To Docs</div>
-      <button class="add-btn" onclick="newDoc()">
-        <span style="font-size:16px">+</span> New How-To
-      </button>
+<!-- ══════════════════════
+     EDITOR PAGE
+══════════════════════ -->
+<div class="page active" id="page-editor">
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-label">How-To Docs</div>
+        <button class="add-btn" onclick="newDoc()"><span style="font-size:16px">+</span> New How-To</button>
+      </div>
+      <div class="doc-list" id="docList"></div>
     </div>
-    <div class="doc-list" id="docList"></div>
-    <div id="recPanel" style="display:none"></div>
+    <div class="editor-wrap" id="editorWrap">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">📋</div>
+        <h3>No doc selected</h3>
+        <p>Select an existing How-To from the sidebar or create a new one to start editing.</p>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- Editor -->
-  <div class="editor-wrap" id="editorWrap">
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">📋</div>
-      <h3>No doc selected</h3>
-      <p>Select an existing How-To from the sidebar or create a new one to start editing.</p>
+<!-- ══════════════════════
+     ANALYTICS PAGE
+══════════════════════ -->
+<div class="page" id="page-analytics">
+  <div class="analytics-page" id="analyticsContent">
+    <div class="analytics-empty">
+      <div class="analytics-empty-icon">📊</div>
+      <h3>Loading analytics...</h3>
+      <p>Reading query log and corpus data from session storage.</p>
     </div>
   </div>
 </div>
@@ -196,11 +316,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
-<!-- JSON export modal -->
+<!-- JSON modal -->
 <div class="modal-overlay" id="jsonModal" style="display:none">
   <div class="modal json-modal">
     <h3>Export JSON</h3>
-    <p>Copy this JSON and save it to your knowledge_base folder. The pipeline and agent will pick it up automatically.</p>
+    <p>Copy this JSON and save it to your knowledge_base folder.</p>
     <div class="json-preview" id="jsonPreview"></div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModal('jsonModal')">Close</button>
@@ -210,116 +330,83 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 </div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 const SECTIONS = ['overview','prerequisites','steps','rules','troubleshoot','glossary'];
-const SECTION_LABELS = {
-  overview:'Overview', prerequisites:'Prerequisites', steps:'Steps',
-  rules:'Rules', troubleshoot:'Troubleshoot', glossary:'Glossary'
-};
-const SECTION_INTENTS = {
-  overview:'LEARN', prerequisites:'CHECK', steps:'DO',
-  rules:'CONSTRAINT', troubleshoot:'FIX', glossary:'LEARN'
-};
-const INTENT_COLORS = {
-  DO:'#10b981', FIX:'#f87171', CHECK:'#3b82f6', CONSTRAINT:'#f59e0b', LEARN:'#a78bfa'
-};
-const INTENT_CLASS = {DO:'do',FIX:'fix',CHECK:'chk',CONSTRAINT:'con',LEARN:'lrn'};
+const SECTION_LABELS = {overview:'Overview',prerequisites:'Prerequisites',steps:'Steps',rules:'Rules',troubleshoot:'Troubleshoot',glossary:'Glossary'};
+const SECTION_INTENTS = {overview:'LEARN',prerequisites:'CHECK',steps:'DO',rules:'CONSTRAINT',troubleshoot:'FIX',glossary:'LEARN'};
+const INTENT_COLORS = {DO:'#10b981',FIX:'#f87171',CHECK:'#3b82f6',CONSTRAINT:'#f59e0b',LEARN:'#a78bfa'};
+const LOG_KEY  = 'ok_query_log';
+const DOCS_KEY = 'ok_editor_docs';
 
-// ── State ─────────────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────────────
 let docs = {};
 let activeDocId = null;
 let activeSection = 'overview';
 let unsaved = false;
+let currentPage = 'editor';
 
-// ── Load from localStorage ────────────────────────────────────────────────
-function loadRecommendations(){
-  const LOG_KEY = 'ok_query_log';
-  try {
-    const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
-    const gaps = stored.filter(e=>e.gap || e.gap_reason);
-    const panel = document.getElementById('recPanel');
-    if(!panel) return;
-    if(!gaps.length){ panel.style.display='none'; return; }
-
-    // Group by process
-    const groups = {};
-    gaps.forEach(g=>{
-      const key = g.process || 'unmatched';
-      if(!groups[key]) groups[key]={count:0,queries:[],intents:{}};
-      groups[key].count++;
-      if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
-      if(g.intent) groups[key].intents[g.intent]=(groups[key].intents[g.intent]||0)+1;
-    });
-
-    // Check which processes are already in docs
-    const existingProcesses = new Set(Object.values(docs).map(d=>d.process));
-
-    const items = Object.entries(groups)
-      .sort((a,b)=>b[1].count-a[1].count)
-      .slice(0,5)
-      .map(([proc,data])=>{
-        const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
-        const exists = existingProcesses.has(proc);
-        const action = exists
-          ? `Add ${topIntent} section to existing ${proc} How-To`
-          : `Create new How-To for: ${proc}`;
-        return `<div class="rec-item">
-          <div class="rec-proc">${proc} <span class="rec-count">${data.count} gap${data.count!==1?'s':''}</span></div>
-          <div class="rec-query">e.g. "${data.queries[0]?.substring(0,50)}${data.queries[0]?.length>50?'…':''}"</div>
-          <div class="rec-action">→ ${action}</div>
-        </div>`;
-      }).join('');
-
-    panel.style.display = 'block';
-    panel.innerHTML = `<div class="rec-panel">
-      <div class="rec-panel-title">
-        <span>⚠ ${gaps.length} Knowledge Gap${gaps.length!==1?'s':''}</span>
-        <button onclick="clearRecommendations()" style="background:none;border:none;color:var(--slate);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace">clear</button>
-      </div>
-      ${items}
-    </div>`;
-  } catch(e){ console.warn('Failed to load recommendations:', e); }
+// ── Page switching ──────────────────────────────────────────────────────────
+function switchPage(id) {
+  currentPage = id;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.page-tab').forEach(t => {
+    if (t.textContent.toLowerCase() === id) t.classList.add('active');
+  });
+  if (id === 'analytics') renderAnalytics();
 }
 
-function clearRecommendations(){
-  if(!confirm('Clear gap log? This removes all recorded knowledge gaps.')) return;
-  localStorage.removeItem('ok_query_log');
-  const panel = document.getElementById('recPanel');
-  if(panel) panel.style.display='none';
-}
-
-function loadDocs(){
+// ── Load / save docs ────────────────────────────────────────────────────────
+function loadDocs() {
   try {
-    const stored = localStorage.getItem('ok_editor_docs');
-    if(stored) docs = JSON.parse(stored);
-  } catch(e){ docs = {}; }
-
-  // Seed Task Plan if empty
-  if(Object.keys(docs).length === 0){
+    const stored = localStorage.getItem(DOCS_KEY);
+    if (stored) docs = JSON.parse(stored);
+  } catch(e) { docs = {}; }
+  if (Object.keys(docs).length === 0) {
     docs['MAINT-TP-001'] = getTaskPlanSeed();
   }
   renderSidebar();
   updateCounts();
-  loadRecommendations();
 }
 
-function saveDocs(){
-  localStorage.setItem('ok_editor_docs', JSON.stringify(docs));
+function saveDocs() {
+  localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
   unsaved = false;
   updateSaveStatus(true);
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────
-function renderSidebar(){
+// ── Counts ──────────────────────────────────────────────────────────────────
+function updateCounts() {
+  const docCount = Object.keys(docs).length;
+  const chunkCount = Object.values(docs).reduce((s,d) => s + Object.keys(d.sections||{}).length, 0);
+  document.getElementById('docCount').textContent = `${docCount} doc${docCount!==1?'s':''}`;
+  document.getElementById('chunkCount').textContent = `${chunkCount} chunks`;
+
+  try {
+    const log = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
+    const gaps = log.filter(e => e.gap || e.gap_reason).length;
+    const gapPill = document.getElementById('gapCount');
+    if (gaps > 0) {
+      gapPill.textContent = `${gaps} gap${gaps!==1?'s':''}`;
+      gapPill.style.display = 'inline-block';
+    } else {
+      gapPill.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+function renderSidebar() {
   const list = document.getElementById('docList');
   list.innerHTML = '';
   Object.values(docs).forEach(doc => {
     const div = document.createElement('div');
     div.className = 'doc-item' + (doc.doc_id === activeDocId ? ' active' : '');
     div.onclick = () => openDoc(doc.doc_id);
-    const sectionCount = Object.values(doc.sections || {}).filter(s=>s.content&&s.content.trim().length>0).length;
+    const sectionCount = Object.values(doc.sections||{}).filter(s => s.content && s.content.trim().length > 0).length;
     div.innerHTML = `
-      <div class="doc-item-title">${doc.title || 'Untitled'}</div>
+      <div class="doc-item-title">${doc.title||'Untitled'}</div>
       <div class="doc-item-id">${doc.doc_id}</div>
       <div class="doc-item-status">
         <div class="status-dot" style="background:${sectionCount===6?'#10b981':'#f59e0b'}"></div>
@@ -329,25 +416,17 @@ function renderSidebar(){
   });
 }
 
-function updateCounts(){
-  const docCount = Object.keys(docs).length;
-  const chunkCount = Object.values(docs).reduce((sum, d) => sum + Object.keys(d.sections||{}).length, 0);
-  document.getElementById('docCount').textContent = `${docCount} doc${docCount!==1?'s':''}`;
-  document.getElementById('chunkCount').textContent = `${chunkCount} chunks`;
-}
-
-// ── Open / render doc ─────────────────────────────────────────────────────
-function openDoc(docId){
+// ── Open / render doc ────────────────────────────────────────────────────────
+function openDoc(docId) {
   activeDocId = docId;
   activeSection = 'overview';
   renderSidebar();
   renderEditor();
 }
 
-function renderEditor(){
+function renderEditor() {
   const doc = docs[activeDocId];
-  if(!doc){ return; }
-
+  if (!doc) return;
   const wrap = document.getElementById('editorWrap');
   wrap.innerHTML = `
     <div class="doc-header">
@@ -361,13 +440,13 @@ function renderEditor(){
           <div class="hier-label">Default Business Capability</div>
           <input class="hier-input" id="defCap" value="${esc(doc.default_capability||'Maintenance Execution')}" placeholder="e.g. Maintenance Execution" oninput="fieldChange()" title="Auto-fills Business Capability for new sections"/>
         </div>
-        <div class="doc-default-field" style="flex:2">
+        <div class="doc-default-field">
           <div class="hier-label">Default Process Stage</div>
-          <input class="hier-input" id="defStage" value="${esc(doc.default_process_stage||'')}" placeholder="e.g. Task Plan Creation → Link to SWO" oninput="fieldChange()" title="Auto-fills Process Stage for new sections"/>
+          <input class="hier-input" id="defStage" value="${esc(doc.default_process_stage||'')}" placeholder="e.g. Task Plan Creation → Link to SWO" oninput="fieldChange()"/>
         </div>
-        <div class="doc-default-field" style="flex:2">
+        <div class="doc-default-field">
           <div class="hier-label">Default Business Outcome</div>
-          <input class="hier-input" id="defOutcome" value="${esc(doc.default_outcome||'')}" placeholder="e.g. Work orders generated correctly" oninput="fieldChange()" title="Auto-fills Business Outcome for new sections"/>
+          <input class="hier-input" id="defOutcome" value="${esc(doc.default_outcome||'')}" placeholder="e.g. Work orders generated correctly" oninput="fieldChange()"/>
         </div>
       </div>
       <div class="section-tabs" id="sectionTabs"></div>
@@ -399,7 +478,7 @@ function renderEditor(){
       <div class="action-bar-left">
         <span class="save-status" id="saveStatus">All saved</span>
         <span style="color:rgba(255,255,255,0.15)">·</span>
-        <span id='sectionCounter'>${Object.values(doc.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length}/6 sections complete</span>
+        <span id="sectionCounter">${Object.values(doc.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length}/6 sections complete</span>
       </div>
       <div style="display:flex;gap:10px">
         <button class="export-btn" onclick="showJSON()">Export JSON</button>
@@ -407,12 +486,11 @@ function renderEditor(){
         <button class="save-btn" onclick="saveCurrentDoc()">Save & Update Corpus</button>
       </div>
     </div>`;
-
   renderTabs();
   renderSection();
 }
 
-function renderTabs(){
+function renderTabs() {
   const tabs = document.getElementById('sectionTabs');
   tabs.innerHTML = '';
   SECTIONS.forEach(sec => {
@@ -422,24 +500,19 @@ function renderTabs(){
     const color = INTENT_COLORS[intent];
     const btn = document.createElement('button');
     btn.className = 'section-tab' + (sec === activeSection ? ' active' : '');
-    btn.innerHTML = `
-      <span class="intent-badge" style="background:${color}22;color:${color}">${intent}</span>
-      ${SECTION_LABELS[sec]}
-      ${hasContent ? '<span style="color:#10b981;font-size:14px">·</span>' : ''}`;
+    btn.innerHTML = `<span class="intent-badge" style="background:${color}22;color:${color}">${intent}</span>${SECTION_LABELS[sec]}${hasContent?'<span style="color:#10b981;font-size:14px">·</span>':''}`;
     btn.onclick = () => { activeSection = sec; renderTabs(); renderSection(); };
     tabs.appendChild(btn);
   });
 }
 
-function renderSection(){
+function renderSection() {
   const body = document.getElementById('sectionBody');
   const doc = docs[activeDocId];
   const sec = doc.sections?.[activeSection] || {};
   const intent = SECTION_INTENTS[activeSection];
   const color = INTENT_COLORS[intent];
-
   body.innerHTML = `
-    <!-- Content -->
     <div class="section-panel">
       <div class="field-label" style="color:${color}">
         <span class="intent-badge" style="background:${color}22;color:${color}">${intent}</span>
@@ -447,8 +520,6 @@ function renderSection(){
       </div>
       <textarea class="field-input field-textarea content-area" id="secContent" oninput="fieldChange()" placeholder="Write the ${SECTION_LABELS[activeSection].toLowerCase()} content here...">${esc(sec.content||'')}</textarea>
     </div>
-
-    <!-- Metadata -->
     <div class="meta-panel">
       <div class="meta-panel-title">📊 5-Map Metadata</div>
       <div class="field-row">
@@ -470,8 +541,6 @@ function renderSection(){
         <input class="field-input" id="secTriggers" value="${esc(sec.data_triggers||'')}" placeholder="What causes state changes described here?" oninput="fieldChange()"/>
       </div>
     </div>
-
-    <!-- Keywords -->
     <div class="meta-panel">
       <div class="meta-panel-title">🔍 Retrieval Keywords</div>
       <div class="field-label">Keywords — press Enter to add</div>
@@ -482,53 +551,41 @@ function renderSection(){
     </div>`;
 }
 
-// ── Field changes ─────────────────────────────────────────────────────────
-function fieldChange(){
-  unsaved = true;
-  updateSaveStatus(false);
-}
-
-function updateSaveStatus(saved){
+// ── Field / tag helpers ───────────────────────────────────────────────────────
+function fieldChange() { unsaved = true; updateSaveStatus(false); }
+function updateSaveStatus(saved) {
   const el = document.getElementById('saveStatus');
-  if(!el) return;
+  if (!el) return;
   el.textContent = saved ? '✓ All saved' : '● Unsaved changes';
   el.className = 'save-status ' + (saved ? 'saved' : 'unsaved');
 }
-
-// ── Tags ──────────────────────────────────────────────────────────────────
-function handleTagKey(e){
-  if(e.key === 'Enter' || e.key === ','){
+function handleTagKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
     e.preventDefault();
     const val = e.target.value.trim().replace(/,$/,'');
-    if(!val) return;
+    if (!val) return;
     const doc = docs[activeDocId];
-    if(!doc.sections[activeSection]) doc.sections[activeSection] = {};
-    if(!doc.sections[activeSection].keywords) doc.sections[activeSection].keywords = [];
-    if(!doc.sections[activeSection].keywords.includes(val)){
-      doc.sections[activeSection].keywords.push(val);
-    }
+    if (!doc.sections[activeSection]) doc.sections[activeSection] = {};
+    if (!doc.sections[activeSection].keywords) doc.sections[activeSection].keywords = [];
+    if (!doc.sections[activeSection].keywords.includes(val)) doc.sections[activeSection].keywords.push(val);
     e.target.value = '';
     fieldChange();
     renderSection();
     document.getElementById('tagInput').focus();
   }
 }
-
-function removeTag(tag){
+function removeTag(tag) {
   const doc = docs[activeDocId];
-  if(doc.sections?.[activeSection]?.keywords){
-    doc.sections[activeSection].keywords = doc.sections[activeSection].keywords.filter(k=>k!==tag);
-  }
+  if (doc.sections?.[activeSection]?.keywords)
+    doc.sections[activeSection].keywords = doc.sections[activeSection].keywords.filter(k => k !== tag);
   fieldChange();
   renderSection();
 }
 
-// ── Save ──────────────────────────────────────────────────────────────────
-function saveCurrentDoc(){
+// ── Save ──────────────────────────────────────────────────────────────────────
+function saveCurrentDoc() {
   const doc = docs[activeDocId];
-  if(!doc) return;
-
-  // Update top-level fields
+  if (!doc) return;
   doc.title   = document.getElementById('docTitle')?.value || doc.title;
   doc.doc_id  = document.getElementById('docId')?.value   || doc.doc_id;
   doc.process = document.getElementById('docProcess')?.value || doc.process;
@@ -543,210 +600,387 @@ function saveCurrentDoc(){
   doc.default_capability    = document.getElementById('defCap')?.value    || '';
   doc.default_process_stage = document.getElementById('defStage')?.value  || '';
   doc.default_outcome       = document.getElementById('defOutcome')?.value || '';
-
-  // Update current section
-  if(!doc.sections) doc.sections = {};
-  if(!doc.sections[activeSection]) doc.sections[activeSection] = {};
+  if (!doc.sections) doc.sections = {};
+  if (!doc.sections[activeSection]) doc.sections[activeSection] = {};
   const sec = doc.sections[activeSection];
-  sec.content   = document.getElementById('secContent')?.value || '';
-  sec.intent    = SECTION_INTENTS[activeSection];
-  sec.audience  = 'planner';
-  if(!sec.keywords) sec.keywords = [];
-
-  // Only store section metadata if it differs from doc-level defaults
-  // This avoids duplication in the JSON
+  sec.content  = document.getElementById('secContent')?.value || '';
+  sec.intent   = SECTION_INTENTS[activeSection];
+  sec.audience = 'planner';
+  if (!sec.keywords) sec.keywords = [];
   const capVal     = document.getElementById('secCap')?.value     || '';
   const stageVal   = document.getElementById('secStage')?.value   || '';
   const outcomeVal = document.getElementById('secOutcome')?.value || '';
   const triggerVal = document.getElementById('secTriggers')?.value || '';
-
-  sec.business_capability = (capVal     !== (doc.default_capability    || '')) ? capVal     : (doc.default_capability    || '');
-  sec.process_stage       = (stageVal   !== (doc.default_process_stage || '')) ? stageVal   : (doc.default_process_stage || '');
-  sec.business_outcome    = (outcomeVal !== (doc.default_outcome       || '')) ? outcomeVal : (doc.default_outcome       || '');
+  sec.business_capability = capVal || doc.default_capability || '';
+  sec.process_stage       = stageVal || doc.default_process_stage || '';
+  sec.business_outcome    = outcomeVal || doc.default_outcome || '';
   sec.data_triggers       = triggerVal;
-
-  // Update doc_id key if changed
   const newId = doc.doc_id;
-  if(newId !== activeDocId){
+  if (newId !== activeDocId) {
     docs[newId] = doc;
     delete docs[activeDocId];
     activeDocId = newId;
   }
-
   saveDocs();
   renderSidebar();
   renderTabs();
   updateCounts();
-  // Update bottom counter
   const counter = document.getElementById('sectionCounter');
-  if(counter){
+  if (counter) {
     const d = docs[activeDocId];
-    const n = Object.values(d.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length;
-    counter.textContent = n+'/6 sections complete';
-    counter.style.color = n===6 ? '#10b981' : 'var(--slate)';
+    const n = Object.values(d.sections||{}).filter(s => s.content && s.content.trim().length > 0).length;
+    counter.textContent = n + '/6 sections complete';
+    counter.style.color = n === 6 ? '#10b981' : 'var(--slate)';
   }
-
-  // Flash confirmation
   const btn = document.querySelector('.save-btn');
-  if(btn){ btn.textContent = '✓ Saved!'; setTimeout(()=>btn.textContent='Save & Update Corpus',1800); }
+  if (btn) { btn.textContent = '✓ Saved!'; setTimeout(() => btn.textContent = 'Save & Update Corpus', 1800); }
 }
 
-// ── New doc ───────────────────────────────────────────────────────────────
-function newDoc(){ document.getElementById('newDocModal').style.display='flex'; }
-
-function createDoc(){
+// ── New / delete doc ──────────────────────────────────────────────────────────
+function newDoc() { document.getElementById('newDocModal').style.display='flex'; }
+function createDoc() {
   const title   = document.getElementById('newDocTitle').value.trim();
   const docId   = document.getElementById('newDocId').value.trim();
   const process = document.getElementById('newDocProcess').value.trim().toUpperCase();
-  if(!title || !docId || !process){ alert('Please fill in all fields'); return; }
-  if(docs[docId]){ alert('A document with this ID already exists'); return; }
-
+  if (!title || !docId || !process) { alert('Please fill in all fields'); return; }
+  if (docs[docId]) { alert('A document with this ID already exists'); return; }
   docs[docId] = {
     doc_id: docId, title, process,
     process_keywords: [process.toLowerCase()],
-    hierarchy:{
-      l1:'Maintain Railcar Assets',
-      l2:'Plan Asset Maintenance',
-      l3:'Manage Condition Based Maintenance',
-      l4:'Work Order Management',
-      l5:''
-    },
+    hierarchy:{l1:'Maintain Railcar Assets',l2:'Plan Asset Maintenance',l3:'Manage Condition Based Maintenance',l4:'Work Order Management',l5:''},
     systems:[], related_processes:[], data_entities:[],
     source:'', version:'1.0', author:'Neela Thiagarajan',
     last_updated: new Date().toISOString().split('T')[0],
     sections:{}
   };
-
   closeModal('newDocModal');
   document.getElementById('newDocTitle').value = '';
   document.getElementById('newDocId').value = '';
   document.getElementById('newDocProcess').value = '';
-
-  saveDocs();
-  renderSidebar();
-  updateCounts();
-  openDoc(docId);
+  saveDocs(); renderSidebar(); updateCounts(); openDoc(docId);
 }
-
-// ── Delete doc ────────────────────────────────────────────────────────────
-function deleteDoc(){
-  if(!confirm(`Delete "${docs[activeDocId]?.title}"? This cannot be undone.`)) return;
+function deleteDoc() {
+  if (!confirm(`Delete "${docs[activeDocId]?.title}"? This cannot be undone.`)) return;
   delete docs[activeDocId];
   activeDocId = null;
-  saveDocs();
-  renderSidebar();
-  updateCounts();
-  document.getElementById('editorWrap').innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <h3>No doc selected</h3>
-      <p>Select an existing How-To from the sidebar or create a new one.</p>
-    </div>`;
+  saveDocs(); renderSidebar(); updateCounts();
+  document.getElementById('editorWrap').innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>No doc selected</h3><p>Select an existing How-To from the sidebar or create a new one.</p></div>`;
 }
 
-// ── Export JSON ───────────────────────────────────────────────────────────
-function showJSON(){
-  // Save first
+// ── Export JSON ───────────────────────────────────────────────────────────────
+function showJSON() {
   saveCurrentDoc();
-  const doc = docs[activeDocId];
-  document.getElementById('jsonPreview').textContent = JSON.stringify(doc, null, 2);
+  document.getElementById('jsonPreview').textContent = JSON.stringify(docs[activeDocId], null, 2);
   document.getElementById('jsonModal').style.display = 'flex';
 }
-
-function copyJSON(){
-  const text = document.getElementById('jsonPreview').textContent;
-  navigator.clipboard.writeText(text).then(() => {
+function copyJSON() {
+  navigator.clipboard.writeText(document.getElementById('jsonPreview').textContent).then(() => {
     const btn = document.querySelector('#jsonModal .modal-confirm');
     btn.textContent = '✓ Copied!';
-    setTimeout(()=>btn.textContent='Copy to clipboard', 1800);
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 1800);
   });
 }
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+function esc(s) { return (s||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-// ── Modal helpers ─────────────────────────────────────────────────────────
-function closeModal(id){ document.getElementById(id).style.display='none'; }
+// ══════════════════════════════════════════════════════════════════════════════
+// ANALYTICS ENGINE — reads real data from localStorage
+// ══════════════════════════════════════════════════════════════════════════════
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-function esc(s){ return (s||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function getQueryLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
+}
 
-// ── Task Plan seed data ───────────────────────────────────────────────────
-function getTaskPlanSeed(){
+function clearQueryLog() {
+  if (!confirm('Clear the full query log? This removes all session history and gap data.')) return;
+  localStorage.removeItem(LOG_KEY);
+  updateCounts();
+  renderAnalytics();
+}
+
+function renderAnalytics() {
+  const log = getQueryLog();
+  const container = document.getElementById('analyticsContent');
+
+  if (log.length === 0) {
+    container.innerHTML = `
+      <div class="analytics-empty">
+        <div class="analytics-empty-icon">📊</div>
+        <h3>No query data yet</h3>
+        <p>Query history will appear here after your agent processes requests. Each query to the agent is logged to <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--teal)">ok_query_log</code> in localStorage.</p>
+        <p style="margin-top:8px;">Use the agent, then switch back to Analytics to see real data.</p>
+      </div>
+      ${renderCorpusHealth()}`;
+    return;
+  }
+
+  const n = log.length;
+  const gaps = log.filter(e => e.gap || e.gap_reason);
+  const gapRate = Math.round(gaps.length / n * 100);
+  const uniqueProcs = new Set(log.map(e => e.process).filter(Boolean)).size;
+
+  // Intent distribution
+  const intentCounts = {};
+  log.forEach(e => { if (e.intent) intentCounts[e.intent] = (intentCounts[e.intent]||0) + 1; });
+  const maxIntent = Math.max(...Object.values(intentCounts), 1);
+
+  // Process distribution
+  const procCounts = {};
+  log.forEach(e => { const p = e.process || 'unmatched'; procCounts[p] = (procCounts[p]||0) + 1; });
+  const maxProc = Math.max(...Object.values(procCounts), 1);
+
+  // Gap by process
+  const gapByProc = {};
+  gaps.forEach(g => {
+    const p = g.process || 'unmatched';
+    if (!gapByProc[p]) gapByProc[p] = { count: 0, queries: [] };
+    gapByProc[p].count++;
+    if (!gapByProc[p].queries.includes(g.query)) gapByProc[p].queries.push(g.query);
+  });
+
+  // Time range
+  const times = log.map(e => e.ts || e.timestamp).filter(Boolean).sort();
+  const firstTs = times[0] ? new Date(times[0]).toLocaleDateString() : '—';
+  const lastTs  = times[times.length-1] ? new Date(times[times.length-1]).toLocaleDateString() : '—';
+
+  // Intent colors mapping
+  const ICOLORS = {DO:'#10b981',FIX:'#f87171',CHECK:'#3b82f6',CONSTRAINT:'#f59e0b',LEARN:'#a78bfa'};
+  const PROC_COLORS = ['#0ea5e9','#a78bfa','#10b981','#f59e0b','#f87171','#fb923c'];
+
+  container.innerHTML = `
+    <!-- Controls -->
+    <div class="analytics-controls">
+      <button class="a-btn danger" onclick="clearQueryLog()">↺ Clear Log</button>
+      <span class="a-ts">${n} queries · ${firstTs} → ${lastTs}</span>
+    </div>
+
+    <!-- KPI row -->
+    <div>
+      <div class="a-section-title">Session Overview</div>
+      <div class="kpi-row">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Queries</div>
+          <div class="kpi-value">${n}</div>
+          <div class="kpi-note">in session log</div>
+        </div>
+        <div class="kpi-card ${gapRate >= 30 ? 'red' : gapRate >= 10 ? 'amber' : 'green'}">
+          <div class="kpi-label">Gap Rate</div>
+          <div class="kpi-value">${gapRate}%</div>
+          <div class="kpi-note">${gaps.length} unmatched queries</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Hit Rate</div>
+          <div class="kpi-value">${100 - gapRate}%</div>
+          <div class="kpi-note">retrieved content</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Process Domains</div>
+          <div class="kpi-value">${uniqueProcs}</div>
+          <div class="kpi-note">distinct areas hit</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Intent Types</div>
+          <div class="kpi-value">${Object.keys(intentCounts).length}</div>
+          <div class="kpi-note">of 5 total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div>
+      <div class="a-section-title">Query Distribution</div>
+      <div class="chart-grid-3">
+        <div class="chart-card">
+          <div class="chart-title">Intent Breakdown</div>
+          <div class="bar-list">
+            ${['DO','FIX','CHECK','CONSTRAINT','LEARN'].map(intent => {
+              const cnt = intentCounts[intent] || 0;
+              const pct = Math.round(cnt/maxIntent*100);
+              return `<div class="bar-item">
+                <div class="bar-label-row">
+                  <span class="bar-label" style="color:${ICOLORS[intent]||'var(--slate)'}">${intent}</span>
+                  <span class="bar-count">${cnt}</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${ICOLORS[intent]||'var(--slate)'}"></div></div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Process Domain Hits</div>
+          <div class="bar-list">
+            ${Object.entries(procCounts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([proc,cnt],i) => `
+              <div class="bar-item">
+                <div class="bar-label-row">
+                  <span class="bar-label">${proc}</span>
+                  <span class="bar-count">${cnt}</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxProc*100)}%;background:${PROC_COLORS[i%PROC_COLORS.length]}"></div></div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Knowledge Gaps by Process</div>
+          ${Object.keys(gapByProc).length === 0
+            ? `<div style="color:var(--green);font-family:'DM Mono',monospace;font-size:11px;text-align:center;padding:20px 0">✓ No gaps detected</div>`
+            : `<div class="gap-list">${Object.entries(gapByProc).sort((a,b)=>b[1].count-a[1].count).slice(0,5).map(([proc,data]) => `
+              <div class="gap-item">
+                <div class="gap-proc">${proc} <span style="color:var(--slate);font-size:9px">${data.count} gap${data.count!==1?'s':''}</span></div>
+                <div class="gap-query">"${(data.queries[0]||'').substring(0,55)}${(data.queries[0]||'').length>55?'…':''}"</div>
+                <div class="gap-action">→ Add ${proc} How-To to corpus</div>
+              </div>`).join('')}</div>`}
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-Map corpus coverage -->
+    <div>
+      <div class="a-section-title">5-Map Corpus Health</div>
+      <div class="chart-grid-2">
+        ${renderMapCoverageCard()}
+        ${renderCorpusCompletionCard()}
+      </div>
+    </div>
+
+    <!-- Corpus health grid -->
+    <div>
+      <div class="a-section-title">Corpus — Document Status</div>
+      ${renderCorpusHealth()}
+    </div>
+
+    <!-- Full query log -->
+    <div>
+      <div class="a-section-title">Full Query Log (${n})</div>
+      <div class="query-log-table">
+        <div class="log-head">
+          <div class="log-col">Query</div>
+          <div class="log-col">Intent</div>
+          <div class="log-col">Process</div>
+          <div class="log-col">Gap</div>
+          <div class="log-col">Reason / Chunks</div>
+        </div>
+        ${[...log].reverse().map(entry => `
+          <div class="log-row">
+            <div class="log-query-text">${esc(entry.query||'—')}</div>
+            <div class="log-cell">
+              ${entry.intent ? `<span class="ibadge ibadge-${entry.intent}">${entry.intent}</span>` : '<span style="color:var(--slate);font-size:10px">—</span>'}
+            </div>
+            <div class="log-cell" style="font-size:10px;color:var(--teal)">${entry.process||'—'}</div>
+            <div class="log-cell">
+              <span class="gap-badge ${(entry.gap||entry.gap_reason)?'gap-yes':'gap-no'}">${(entry.gap||entry.gap_reason)?'⚠ gap':'✓ hit'}</span>
+            </div>
+            <div class="log-cell" style="font-size:10px">${esc((entry.gap_reason||entry.chunks_hit||entry.reason||'').toString().substring(0,60))}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderMapCoverageCard() {
+  // Measure how many chunks in corpus have each map field populated
+  const allSections = Object.values(docs).flatMap(d => Object.values(d.sections||{}));
+  const total = allSections.length || 1;
+  const maps = [
+    { name: 'Map 1 · Business Capability', key: 'business_capability' },
+    { name: 'Map 2 · Process Stage',       key: 'process_stage' },
+    { name: 'Map 3 · Systems',             key: null }, // on doc level
+    { name: 'Map 4 · Data Triggers',       key: 'data_triggers' },
+    { name: 'Map 5 · Knowledge Content',   key: 'content' },
+  ];
+  const pcts = maps.map(m => {
+    if (!m.key) return Math.round(Object.values(docs).filter(d => d.systems && d.systems.length > 0).length / Math.max(Object.keys(docs).length,1) * 100);
+    return Math.round(allSections.filter(s => s[m.key] && s[m.key].trim().length > 0).length / total * 100);
+  });
+  return `<div class="chart-card">
+    <div class="chart-title">5-Map Fill Rate (across all sections)</div>
+    <div class="map-grid">
+      ${maps.map((m,i) => {
+        const pct = pcts[i];
+        const cls = pct >= 80 ? '' : pct >= 50 ? 'warn' : 'danger';
+        return `<div class="map-item ${cls}">
+          <div class="map-header">
+            <span class="map-name">${m.name}</span>
+            <span class="map-pct">${pct}%</span>
+          </div>
+          <div class="map-bar"><div class="map-bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderCorpusCompletionCard() {
+  const docArr = Object.values(docs);
+  const complete = docArr.filter(d => Object.values(d.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length === 6).length;
+  const partial  = docArr.filter(d => { const n=Object.values(d.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length; return n>0&&n<6; }).length;
+  const empty    = docArr.filter(d => Object.values(d.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length === 0).length;
+  const totalSecs = docArr.reduce((s,d) => s + Object.values(d.sections||{}).filter(sec=>sec.content&&sec.content.trim().length>0).length, 0);
+  const maxSecs = docArr.length * 6;
+  return `<div class="chart-card">
+    <div class="chart-title">Corpus Completion</div>
+    <div class="bar-list" style="margin-bottom:16px">
+      <div class="bar-item">
+        <div class="bar-label-row"><span class="bar-label" style="color:var(--green)">Complete (6/6)</span><span class="bar-count">${complete}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(complete/Math.max(docArr.length,1)*100)}%;background:var(--green)"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label-row"><span class="bar-label" style="color:var(--gold)">Partial</span><span class="bar-count">${partial}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(partial/Math.max(docArr.length,1)*100)}%;background:var(--gold)"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label-row"><span class="bar-label" style="color:var(--slate)">Empty</span><span class="bar-count">${empty}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(empty/Math.max(docArr.length,1)*100)}%;background:var(--slate)"></div></div>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--slate)">
+      ${totalSecs} / ${maxSecs} sections authored &nbsp;·&nbsp; ${docArr.length} doc${docArr.length!==1?'s':''}
+    </div>
+  </div>`;
+}
+
+function renderCorpusHealth() {
+  const docArr = Object.values(docs);
+  if (docArr.length === 0) return `<div style="color:var(--slate);font-family:'DM Mono',monospace;font-size:11px;padding:16px">No documents in corpus yet.</div>`;
+  return `<div class="corpus-grid">
+    ${docArr.map(doc => {
+      const filled = SECTIONS.map(s => doc.sections?.[s]?.content?.trim().length > 0);
+      const n = filled.filter(Boolean).length;
+      return `<div class="corpus-card">
+        <div class="corpus-proc">${doc.process} · ${doc.doc_id}</div>
+        <div class="corpus-title">${doc.title}</div>
+        <div class="corpus-sections">
+          ${SECTIONS.map((s,i) => `<div class="sec-pip ${filled[i]?'filled':'empty'}" title="${SECTION_LABELS[s]}"></div>`).join('')}
+        </div>
+        <div class="corpus-meta">${n}/6 sections · updated ${doc.last_updated||'—'}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Seed data ──────────────────────────────────────────────────────────────────
+function getTaskPlanSeed() {
   return {
-    doc_id:"MAINT-TP-001",
-    title:"How to Create a Task Plan",
-    process:"TASK-PLAN",
+    doc_id:"MAINT-TP-001",title:"How to Create a Task Plan",process:"TASK-PLAN",
     process_keywords:["task plan","task plans","job plan","checklist","billing relief","sequence 10","active checklist","required entry","follow-up task plan","copy to work order","nonconformity"],
     hierarchy:{l1:"Maintain Railcar Assets",l2:"Plan Asset Maintenance",l3:"Manage Condition Based Maintenance",l4:"Work Order Management",l5:"Manage Task Plan"},
     systems:["EAM system","Mobile field app","Billing system"],
     related_processes:["WGC campaign","PMC campaign","Standard Work Order"],
     data_entities:["Task Plan","Work Order","Checklist Item","Billing Relief Code","Document Reference"],
-    source:"System validation testing — March 2026",
-    version:"1.0",
-    author:"Neela Thiagarajan",
-    last_updated:"2026-03-29",
+    source:"System validation testing — March 2026",version:"1.0",author:"Neela Thiagarajan",last_updated:"2026-03-29",
     sections:{
-      overview:{
-        intent:"LEARN",audience:"all",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Planners understand what a Task Plan is, when to use it, and why it must exist before any campaign or work order",
-        process_stage:"Pre-Campaign Setup → Task Plan Creation",
-        data_triggers:"Task Plan must exist before Standard Work Order can link to it",
-        keywords:["task plan","job plan","reusable","work order template","WGC","PMC"],
-        content:"A Task Plan in the EAM system defines HOW maintenance work is performed. It replaces the legacy Job Plan and serves as the foundational work template for generating work orders.\n\nA Task Plan specifies the standard, repeatable instructions that appear on every work order:\n- Checklist items (inspection steps or measurement points)\n- Billing relief codes (valid completion outcomes for automated work order closure)\n- Reference documents (linked by name/code to content on handheld devices)\n- Follow-up rules (conditions that trigger additional work orders)\n\nTask Plans are REUSABLE. One Task Plan can be referenced by multiple Standard Work Orders and PM Schedules. Used by both WGC (Corrective Maintenance) and PMC (Preventive Maintenance) campaigns."
-      },
-      prerequisites:{
-        intent:"CHECK",audience:"planner",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Task Plan creation succeeds on first attempt — no rework from missing Engineering inputs",
-        process_stage:"Pre-Task Plan Creation",
-        data_triggers:"Document names must match exactly what exists on handheld devices",
-        keywords:["prerequisites","before you start","billing codes","document name","Engineering","permissions"],
-        content:"Before creating a Task Plan you must have:\n\n1. Access to the EAM system with Task Plan creation permissions\n2. Work instructions and checklist items from Engineering\n3. Billing relief codes from Engineering — at least two reference numbers (entered manually in current phase)\n4. Document name/code from Engineering — must match EXACTLY what exists on handheld devices\n5. Sub Work Type value if required — confirm with Process SME (leave blank until confirmed)\n6. Next available Task Plan number — check list view first, numbers are sequential"
-      },
-      steps:{
-        intent:"DO",audience:"planner",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Task Plan created with all required components — ready to be linked by Standard Work Orders and PM Schedules",
-        process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",
-        data_triggers:"Work Order Type = Campaign must be set before Save · Active Checklist must remain unchecked · Required Entry must be Warning · Follow-up Task Plan on Sequence 10 only",
-        keywords:["create","navigate","checklist","billing","document","save","sequence","Work Order Type","Campaign"],
-        content:"Steps to Create a Task Plan:\n\nSTEP 1 — Header: Work > Work Order Planning > Task Plans > New Record. Enter number (sequential), description, Work Order Type = Campaign (CRITICAL).\n\nSTEP 2 — Billing tab: add 2+ billing relief codes from Engineering (enter manually).\n\nSTEP 3 — Checklist tab: add items seq 10, 20, 30. For wear chart: Enable Nonconformities, type = Measurement. Follow-up on Seq 10 ONLY. Do NOT check Active Checklist. Required Entry = Warning.\n\nSTEP 4 — More tab > Documents: enter document name/code from Engineering. Check Copy to Work Order on PRIMARY only.\n\nSTEP 5 — Save. Verify: Task Plan visible in list, all tabs populated."
-      },
-      rules:{
-        intent:"CONSTRAINT",audience:"planner",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Task Plan errors prevented at creation time — no rework from incorrect configuration",
-        process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",
-        data_triggers:"Work Order Type = Campaign required for lookup · Active Checklist controls display · Required Entry = Yes blocks closure",
-        keywords:["rules","critical","must","Active Checklist","Required Entry","Sequence 10","Work Order Type"],
-        content:"Critical Rules — Task Plan:\n\nWORK ORDER TYPE MUST BE CAMPAIGN — or Task Plan won't appear in SWO Activities lookup.\n\nDO NOT CHECK ACTIVE CHECKLIST — checklist items will NOT appear on work orders if checked.\n\nREQUIRED ENTRY = WARNING NOT YES — if Yes, billing system blocks work order closure.\n\nFOLLOW-UP TASK PLAN ON SEQUENCE 10 ONLY — Sequence 20 follow-up field is not honored.\n\nSEQUENCE NUMBERS IN INCREMENTS OF 10 — allows future insertions without renumbering.\n\nONE DOCUMENT WITH COPY TO WORK ORDER — multiple causes unpredictable behavior.\n\nDOCUMENTS ARE REFERENCES NOT UPLOADS — file lives on handheld devices.\n\nDO NOT DUPLICATE TASK PLANS — check if suitable Task Plan already exists."
-      },
-      troubleshoot:{
-        intent:"FIX",audience:"planner",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Task Plan configuration errors resolved without work order regeneration",
-        process_stage:"Task Plan Creation → Work Order Generation → Field Execution",
-        data_triggers:"Active Checklist controls display · Required Entry = Yes blocks closure · Follow-up on Seq 10 triggers follow-up WO",
-        keywords:["not visible","checklist missing","not closing","follow-up not created","document missing"],
-        content:"Task Plan Troubleshooting:\n\nProblem: Task Plan not visible in SWO Activities lookup\nCause: Work Order Type not set to Campaign.\nFix: Verify Work Order Type = Campaign. Search by partial number. Confirm correct organization.\n\nProblem: Checklist items missing from work orders\nCause: Active Checklist checkbox is checked.\nFix: Open Task Plan — confirm Active Checklist is NOT checked.\n\nProblem: Work orders not closing automatically\nCause: Required Entry is set to Yes.\nFix: Open Task Plan > Checklist — change Required Entry to Warning on all items.\n\nProblem: Follow-up work order not created\nCause: Follow-up Task Plan linked on Sequence 20 not Sequence 10.\nFix: Move follow-up link to Sequence 10.\n\nProblem: Document missing from handheld\nCause: Copy to Work Order not checked or name mismatch.\nFix: Confirm Copy to Work Order on primary document. Verify name matches Engineering confirmation."
-      },
-      glossary:{
-        intent:"LEARN",audience:"all",
-        business_capability:"Maintenance Execution",
-        business_outcome:"Users understand key Task Plan terms before creating or troubleshooting",
-        process_stage:"All Task Plan stages",
-        data_triggers:"Term definitions — reference only, no system actions triggered",
-        keywords:["definition","billing relief code","Active Checklist","Required Entry","nonconformity","follow-up","Copy to Work Order"],
-        content:"Task Plan Glossary:\n\nTask Plan: Work instruction template replacing legacy Job Plan. Reusable across work orders and campaigns.\n\nBilling Relief Code: Code that auto-closes work order when submitted by field technician.\n\nActive Checklist: If checked, checklist items DO NOT appear on work orders. Must stay unchecked.\n\nRequired Entry: Must be Warning not Yes. If Yes, automated work order closure is blocked.\n\nFollow-up Task Plan: Linked on Sequence 10 only. Triggers creation of additional work order.\n\nCopy to Work Order: Designates primary document for mobile field application. One document only.\n\nDocument Reference: Link to name/code on handheld. EAM stores reference only — file on handheld.\n\nNonconformity: Mechanism for measurement-based checklist items. Captures recorded values for threshold evaluation."
-      }
+      overview:{intent:"LEARN",audience:"all",business_capability:"Maintenance Execution",business_outcome:"Planners understand what a Task Plan is, when to use it, and why it must exist before any campaign or work order",process_stage:"Pre-Campaign Setup → Task Plan Creation",data_triggers:"Task Plan must exist before Standard Work Order can link to it",keywords:["task plan","job plan","reusable","work order template","WGC","PMC"],content:"A Task Plan in the EAM system defines HOW maintenance work is performed. It replaces the legacy Job Plan and serves as the foundational work template for generating work orders.\n\nA Task Plan specifies the standard, repeatable instructions that appear on every work order:\n- Checklist items (inspection steps or measurement points)\n- Billing relief codes (valid completion outcomes for automated work order closure)\n- Reference documents (linked by name/code to content on handheld devices)\n- Follow-up rules (conditions that trigger additional work orders)\n\nTask Plans are REUSABLE. One Task Plan can be referenced by multiple Standard Work Orders and PM Schedules. Used by both WGC (Corrective Maintenance) and PMC (Preventive Maintenance) campaigns."},
+      prerequisites:{intent:"CHECK",audience:"planner",business_capability:"Maintenance Execution",business_outcome:"Task Plan creation succeeds on first attempt — no rework from missing Engineering inputs",process_stage:"Pre-Task Plan Creation",data_triggers:"Document names must match exactly what exists on handheld devices",keywords:["prerequisites","before you start","billing codes","document name","Engineering","permissions"],content:"Before creating a Task Plan you must have:\n\n1. Access to the EAM system with Task Plan creation permissions\n2. Work instructions and checklist items from Engineering\n3. Billing relief codes from Engineering — at least two reference numbers (entered manually in current phase)\n4. Document name/code from Engineering — must match EXACTLY what exists on handheld devices\n5. Sub Work Type value if required — confirm with Process SME (leave blank until confirmed)\n6. Next available Task Plan number — check list view first, numbers are sequential"},
+      steps:{intent:"DO",audience:"planner",business_capability:"Maintenance Execution",business_outcome:"Task Plan created with all required components — ready to be linked by Standard Work Orders and PM Schedules",process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",data_triggers:"Work Order Type = Campaign must be set before Save · Active Checklist must remain unchecked · Required Entry must be Warning · Follow-up Task Plan on Sequence 10 only",keywords:["create","navigate","checklist","billing","document","save","sequence","Work Order Type","Campaign"],content:"Steps to Create a Task Plan:\n\nSTEP 1 — Header: Work > Work Order Planning > Task Plans > New Record. Enter number (sequential), description, Work Order Type = Campaign (CRITICAL).\n\nSTEP 2 — Billing tab: add 2+ billing relief codes from Engineering (enter manually).\n\nSTEP 3 — Checklist tab: add items seq 10, 20, 30. For wear chart: Enable Nonconformities, type = Measurement. Follow-up on Seq 10 ONLY. Do NOT check Active Checklist. Required Entry = Warning.\n\nSTEP 4 — More tab > Documents: enter document name/code from Engineering. Check Copy to Work Order on PRIMARY only.\n\nSTEP 5 — Save. Verify: Task Plan visible in list, all tabs populated."},
+      rules:{intent:"CONSTRAINT",audience:"planner",business_capability:"Maintenance Execution",business_outcome:"Task Plan errors prevented at creation time — no rework from incorrect configuration",process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",data_triggers:"Work Order Type = Campaign required for lookup · Active Checklist controls display · Required Entry = Yes blocks closure",keywords:["rules","critical","must","Active Checklist","Required Entry","Sequence 10","Work Order Type"],content:"Critical Rules — Task Plan:\n\nWORK ORDER TYPE MUST BE CAMPAIGN — or Task Plan won't appear in SWO Activities lookup.\n\nDO NOT CHECK ACTIVE CHECKLIST — checklist items will NOT appear on work orders if checked.\n\nREQUIRED ENTRY = WARNING NOT YES — if Yes, billing system blocks work order closure.\n\nFOLLOW-UP TASK PLAN ON SEQUENCE 10 ONLY — Sequence 20 follow-up field is not honored.\n\nSEQUENCE NUMBERS IN INCREMENTS OF 10 — allows future insertions without renumbering.\n\nONE DOCUMENT WITH COPY TO WORK ORDER — multiple causes unpredictable behavior.\n\nDOCUMENTS ARE REFERENCES NOT UPLOADS — file lives on handheld devices.\n\nDO NOT DUPLICATE TASK PLANS — check if suitable Task Plan already exists."},
+      troubleshoot:{intent:"FIX",audience:"planner",business_capability:"Maintenance Execution",business_outcome:"Task Plan configuration errors resolved without work order regeneration",process_stage:"Task Plan Creation → Work Order Generation → Field Execution",data_triggers:"Active Checklist controls display · Required Entry = Yes blocks closure · Follow-up on Seq 10 triggers follow-up WO",keywords:["not visible","checklist missing","not closing","follow-up not created","document missing"],content:"Task Plan Troubleshooting:\n\nProblem: Task Plan not visible in SWO Activities lookup\nCause: Work Order Type not set to Campaign.\nFix: Verify Work Order Type = Campaign. Search by partial number. Confirm correct organization.\n\nProblem: Checklist items missing from work orders\nCause: Active Checklist checkbox is checked.\nFix: Open Task Plan — confirm Active Checklist is NOT checked.\n\nProblem: Work orders not closing automatically\nCause: Required Entry is set to Yes.\nFix: Open Task Plan > Checklist — change Required Entry to Warning on all items.\n\nProblem: Follow-up work order not created\nCause: Follow-up Task Plan linked on Sequence 20 not Sequence 10.\nFix: Move follow-up link to Sequence 10.\n\nProblem: Document missing from handheld\nCause: Copy to Work Order not checked or name mismatch.\nFix: Confirm Copy to Work Order on primary document. Verify name matches Engineering confirmation."},
+      glossary:{intent:"LEARN",audience:"all",business_capability:"Maintenance Execution",business_outcome:"Users understand key Task Plan terms before creating or troubleshooting",process_stage:"All Task Plan stages",data_triggers:"Term definitions — reference only, no system actions triggered",keywords:["definition","billing relief code","Active Checklist","Required Entry","nonconformity","follow-up","Copy to Work Order"],content:"Task Plan Glossary:\n\nTask Plan: Work instruction template replacing legacy Job Plan. Reusable across work orders and campaigns.\n\nBilling Relief Code: Code that auto-closes work order when submitted by field technician.\n\nActive Checklist: If checked, checklist items DO NOT appear on work orders. Must stay unchecked.\n\nRequired Entry: Must be Warning not Yes. If Yes, automated work order closure is blocked.\n\nFollow-up Task Plan: Linked on Sequence 10 only. Triggers creation of additional work order.\n\nCopy to Work Order: Designates primary document for mobile field application. One document only.\n\nDocument Reference: Link to name/code on handheld. EAM stores reference only — file on handheld.\n\nNonconformity: Mechanism for measurement-based checklist items. Captures recorded values for threshold evaluation."}
     }
   };
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 loadDocs();
-if(Object.keys(docs).length > 0){
-  openDoc(Object.keys(docs)[0]);
-}
+if (Object.keys(docs).length > 0) openDoc(Object.keys(docs)[0]);
 </script>
 </body>
 </html>
