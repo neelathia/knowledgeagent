@@ -102,6 +102,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .save-status.saved{color:var(--green);}
 .save-status.unsaved{color:var(--gold);}
 
+/* Recommendations panel */
+.rec-panel{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;margin:12px 16px 0;}
+.rec-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fcd34d;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
+.rec-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;}
+.rec-item:last-child{border-bottom:none;}
+.rec-proc{font-family:'DM Mono',monospace;font-size:11px;color:#fcd34d;margin-bottom:3px;}
+.rec-query{color:var(--slate);font-size:11px;margin-bottom:3px;}
+.rec-action{color:var(--teal);font-size:11px;}
+.rec-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);float:right;}
+.rec-empty{font-size:12px;color:var(--slate);text-align:center;padding:8px 0;}
+
 /* Empty state */
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:40px;}
 .empty-icon{width:64px;height:64px;background:linear-gradient(135deg,rgba(37,99,235,0.15),rgba(14,165,233,0.15));border:1px solid rgba(37,99,235,0.2);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;}
@@ -148,6 +159,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </button>
     </div>
     <div class="doc-list" id="docList"></div>
+    <div id="recPanel" style="display:none"></div>
   </div>
 
   <!-- Editor -->
@@ -220,6 +232,62 @@ let activeSection = 'overview';
 let unsaved = false;
 
 // ── Load from localStorage ────────────────────────────────────────────────
+function loadRecommendations(){
+  const LOG_KEY = 'ok_query_log';
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
+    const gaps = stored.filter(e=>e.gap);
+    const panel = document.getElementById('recPanel');
+    if(!panel) return;
+    if(!gaps.length){ panel.style.display='none'; return; }
+
+    // Group by process
+    const groups = {};
+    gaps.forEach(g=>{
+      const key = g.process || 'unmatched';
+      if(!groups[key]) groups[key]={count:0,queries:[],intents:{}};
+      groups[key].count++;
+      if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
+      if(g.intent) groups[key].intents[g.intent]=(groups[key].intents[g.intent]||0)+1;
+    });
+
+    // Check which processes are already in docs
+    const existingProcesses = new Set(Object.values(docs).map(d=>d.process));
+
+    const items = Object.entries(groups)
+      .sort((a,b)=>b[1].count-a[1].count)
+      .slice(0,5)
+      .map(([proc,data])=>{
+        const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+        const exists = existingProcesses.has(proc);
+        const action = exists
+          ? `Add ${topIntent} section to existing ${proc} How-To`
+          : `Create new How-To for: ${proc}`;
+        return `<div class="rec-item">
+          <div class="rec-proc">${proc} <span class="rec-count">${data.count} gap${data.count!==1?'s':''}</span></div>
+          <div class="rec-query">e.g. "${data.queries[0]?.substring(0,50)}${data.queries[0]?.length>50?'…':''}"</div>
+          <div class="rec-action">→ ${action}</div>
+        </div>`;
+      }).join('');
+
+    panel.style.display = 'block';
+    panel.innerHTML = `<div class="rec-panel">
+      <div class="rec-panel-title">
+        <span>⚠ ${gaps.length} Knowledge Gap${gaps.length!==1?'s':''}</span>
+        <button onclick="clearRecommendations()" style="background:none;border:none;color:var(--slate);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace">clear</button>
+      </div>
+      ${items}
+    </div>`;
+  } catch(e){ console.warn('Failed to load recommendations:', e); }
+}
+
+function clearRecommendations(){
+  if(!confirm('Clear gap log? This removes all recorded knowledge gaps.')) return;
+  localStorage.removeItem('ok_query_log');
+  const panel = document.getElementById('recPanel');
+  if(panel) panel.style.display='none';
+}
+
 function loadDocs(){
   try {
     const stored = localStorage.getItem('ok_editor_docs');
@@ -232,6 +300,7 @@ function loadDocs(){
   }
   renderSidebar();
   updateCounts();
+  loadRecommendations();
 }
 
 function saveDocs(){
