@@ -231,19 +231,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .json-modal{max-width:680px;max-height:80vh;display:flex;flex-direction:column;}
 .json-preview{flex:1;overflow-y:auto;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;color:rgba(228,230,234,0.9);white-space:pre-wrap;margin-bottom:16px;max-height:55vh;}
 
-
-/* ── Screenshot upload ── */
-.img-upload-zone{border:1px dashed rgba(255,255,255,0.12);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;margin-bottom:0;}
-.img-upload-zone:hover{border-color:rgba(14,165,233,0.4);background:rgba(14,165,233,0.04);}
-.img-upload-zone input[type=file]{display:none;}
-.img-upload-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);letter-spacing:.06em;}
-.img-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
-.img-item{position:relative;border:1px solid var(--navy-border);border-radius:8px;overflow:hidden;background:rgba(0,0,0,0.2);}
-.img-item img{width:100%;display:block;max-height:320px;object-fit:contain;}
-.img-caption-input{width:100%;background:rgba(255,255,255,0.04);border:none;border-top:1px solid var(--navy-border);padding:7px 10px;color:var(--slate-light);font-family:'Poppins',sans-serif;font-size:11px;outline:none;}
-.img-caption-input::placeholder{color:var(--slate);}
-.img-remove{position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:4px;color:var(--red);font-size:12px;cursor:pointer;padding:2px 7px;line-height:1.4;}
-.img-remove:hover{background:rgba(248,113,113,0.2);}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
 </style>
@@ -494,7 +481,6 @@ function renderEditor() {
         <span id="sectionCounter">${Object.values(doc.sections||{}).filter(s=>s.content&&s.content.trim().length>0).length}/6 sections complete</span>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="export-btn" onclick="exportWord()">Export Word ↓</button>
         <button class="export-btn" onclick="showJSON()">Export JSON</button>
         <button class="export-btn" onclick="deleteDoc()" style="color:#f87171;border-color:rgba(248,113,113,0.2)">Delete</button>
         <button class="save-btn" onclick="saveCurrentDoc()">Save & Update Corpus</button>
@@ -562,24 +548,7 @@ function renderSection() {
         ${(sec.keywords||[]).map(k=>`<span class="tag">${esc(k)}<button class="tag-remove" onclick="removeTag('${esc(k)}')">&times;</button></span>`).join('')}
         <input class="tags-input" id="tagInput" placeholder="Add keyword..." onkeydown="handleTagKey(event)"/>
       </div>
-    </div>
-    <div class="meta-panel">
-      <div class="meta-panel-title">🖼 Screenshots</div>
-      <div class="field-label" style="margin-bottom:8px">Upload screenshots · max 2MB each · included in Word export</div>
-      <div class="img-grid" id="imgGrid">
-        ${(sec.images||[]).map((img,i)=>`
-          <div class="img-item">
-            <img src="${img.data}" alt="${esc(img.caption||'')}"/>
-            <input class="img-caption-input" placeholder="Add a caption (optional)..." value="${esc(img.caption||'')}" oninput="updateCaption(${i},this.value)"/>
-            <button class="img-remove" onclick="removeImage(${i})">✕</button>
-          </div>`).join('')}
-      </div>
-      <label class="img-upload-zone">
-        <input type="file" accept="image/*" multiple onchange="handleImageUpload(event)"/>
-        <span style="font-size:18px;opacity:.5">📷</span>
-        <span class="img-upload-label">Click to add screenshot — PNG, JPG, GIF · max 2MB</span>
-      </label>
-    </div>\`;
+    </div>`;
 }
 
 // ── Field / tag helpers ───────────────────────────────────────────────────────
@@ -1049,189 +1018,6 @@ function getTaskPlanSeed() {
       glossary:{intent:"LEARN",audience:"all",business_capability:"Maintenance Execution",business_outcome:"Users understand key Task Plan terms before creating or troubleshooting",process_stage:"All Task Plan stages",data_triggers:"Term definitions — reference only, no system actions triggered",keywords:["definition","billing relief code","Active Checklist","Required Entry","nonconformity","follow-up","Copy to Work Order"],content:"Task Plan Glossary:\n\nTask Plan: Work instruction template replacing legacy Job Plan. Reusable across work orders and campaigns.\n\nBilling Relief Code: Code that auto-closes work order when submitted by field technician.\n\nActive Checklist: If checked, checklist items DO NOT appear on work orders. Must stay unchecked.\n\nRequired Entry: Must be Warning not Yes. If Yes, automated work order closure is blocked.\n\nFollow-up Task Plan: Linked on Sequence 10 only. Triggers creation of additional work order.\n\nCopy to Work Order: Designates primary document for mobile field application. One document only.\n\nDocument Reference: Link to name/code on handheld. EAM stores reference only — file on handheld.\n\nNonconformity: Mechanism for measurement-based checklist items. Captures recorded values for threshold evaluation."}
     }
   };
-}
-
-
-// ── Image upload / manage ────────────────────────────────────────────────────
-function handleImageUpload(e) {
-  const doc = docs[activeDocId];
-  if (!doc.sections) doc.sections = {};
-  if (!doc.sections[activeSection]) doc.sections[activeSection] = {};
-  if (!doc.sections[activeSection].images) doc.sections[activeSection].images = [];
-  const files = Array.from(e.target.files);
-  let pending = files.length;
-  if (!pending) return;
-  files.forEach(file => {
-    if (!file.type.startsWith('image/')) { pending--; return; }
-    if (file.size > 2 * 1024 * 1024) {
-      alert(file.name + ' is over 2MB — please resize before uploading.');
-      pending--; return;
-    }
-    const reader = new FileReader();
-    reader.onload = ev => {
-      doc.sections[activeSection].images.push({ data: ev.target.result, caption: '', type: file.type });
-      pending--;
-      if (pending === 0) { fieldChange(); renderSection(); }
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function updateCaption(index, caption) {
-  const doc = docs[activeDocId];
-  if (doc.sections?.[activeSection]?.images?.[index] !== undefined)
-    doc.sections[activeSection].images[index].caption = caption;
-  fieldChange();
-}
-
-function removeImage(index) {
-  const doc = docs[activeDocId];
-  if (doc.sections?.[activeSection]?.images)
-    doc.sections[activeSection].images.splice(index, 1);
-  fieldChange(); renderSection();
-}
-
-// ── Export to Word (human-readable How-To, no machine metadata) ───────────────
-async function exportWord() {
-  const doc = docs[activeDocId];
-  if (!doc) return;
-
-  const exportBtn = [...document.querySelectorAll('.export-btn')].find(b => b.textContent.includes('Word'));
-  const origText = exportBtn?.textContent;
-  if (exportBtn) exportBtn.textContent = 'Loading...';
-
-  // Load docx from CDN if not already loaded
-  if (!window.docx) {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/docx@8.5.0/build/index.js';
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  if (exportBtn) exportBtn.textContent = 'Building...';
-
-  const {
-    Document, Packer, Paragraph, TextRun, ImageRun,
-    HeadingLevel, AlignmentType, LevelFormat, BorderStyle
-  } = window.docx;
-
-  const SEC_ORDER  = ['overview','prerequisites','steps','rules','troubleshoot','glossary'];
-  const SEC_LABELS = {overview:'Overview',prerequisites:'Prerequisites',steps:'Steps',rules:'Rules & Constraints',troubleshoot:'Troubleshooting',glossary:'Glossary'};
-  const SEC_INTENTS= {overview:'LEARN',prerequisites:'CHECK',steps:'DO',rules:'CONSTRAINT',troubleshoot:'FIX',glossary:'LEARN'};
-  const I_COLORS   = {DO:'10b981',FIX:'f87171',CHECK:'3b82f6',CONSTRAINT:'f59e0b',LEARN:'a78bfa'};
-
-  const children = [];
-
-  // ── Title ──
-  children.push(new Paragraph({
-    heading: HeadingLevel.HEADING_1,
-    children: [new TextRun({ text: doc.title || 'How-To Document', font: 'Arial', size: 40, bold: true, color: '0f172a' })]
-  }));
-
-  // ── Meta line ──
-  children.push(new Paragraph({
-    spacing: { after: 80 },
-    children: [new TextRun({ text: `${doc.process} · ${doc.doc_id} · v${doc.version||'1.0'} · Updated ${doc.last_updated||''}`, font: 'Arial', size: 18, color: '94a3b8' })]
-  }));
-  children.push(new Paragraph({
-    border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '2563eb', space: 1 } },
-    spacing: { after: 360 }, children: []
-  }));
-
-  // ── Sections ──
-  for (const secName of SEC_ORDER) {
-    const sec = doc.sections?.[secName];
-    if (!sec?.content?.trim()) continue;
-    const intent = SEC_INTENTS[secName];
-    const color  = I_COLORS[intent] || '94a3b8';
-
-    children.push(new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 440, after: 140 },
-      children: [
-        new TextRun({ text: `[${intent}]  `, font: 'Arial', size: 24, color, bold: true }),
-        new TextRun({ text: SEC_LABELS[secName], font: 'Arial', size: 24, bold: true, color: '1e293b' })
-      ]
-    }));
-
-    // Body lines
-    const lines = sec.content.split('\n');
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t) { children.push(new Paragraph({ spacing: { after: 60 }, children: [] })); continue; }
-      const isStep = /^(STEP\s*\d+|Problem:|Cause:|Fix:|•|-|\d+\.)/.test(t);
-      const isAllCaps = t === t.toUpperCase() && t.length > 4 && !/^\d/.test(t);
-      children.push(new Paragraph({
-        spacing: { after: 100 },
-        indent: isStep ? { left: 440 } : undefined,
-        children: [new TextRun({ text: t, font: 'Arial', size: 22, bold: isAllCaps && !isStep, color: isAllCaps && !isStep ? '1e293b' : '334155' })]
-      }));
-    }
-
-    // Images
-    for (const img of (sec.images || [])) {
-      if (!img.data) continue;
-      try {
-        const b64 = img.data.split(',')[1];
-        const binary = atob(b64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const imgType = img.type?.includes('png') ? 'png' : img.type?.includes('gif') ? 'gif' : 'jpg';
-        children.push(new Paragraph({
-          spacing: { before: 200, after: 80 },
-          children: [new ImageRun({ data: bytes, transformation: { width: 520, height: 310 }, type: imgType })]
-        }));
-        if (img.caption) {
-          children.push(new Paragraph({
-            spacing: { after: 240 },
-            alignment: AlignmentType.CENTER,
-            children: [new TextRun({ text: img.caption, font: 'Arial', size: 18, italics: true, color: '64748b' })]
-          }));
-        }
-      } catch(err) { console.warn('Image embed failed:', err); }
-    }
-
-    // Section divider
-    children.push(new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'e2e8f0', space: 1 } },
-      spacing: { after: 200 }, children: []
-    }));
-  }
-
-  // ── Footer ──
-  children.push(new Paragraph({
-    spacing: { before: 560 },
-    children: [new TextRun({ text: `OKA Knowledge Base · Neela Thiagarajan · ${new Date().toLocaleDateString()}`, font: 'Arial', size: 16, color: '94a3b8', italics: true })]
-  }));
-
-  const wordDoc = new Document({
-    styles: {
-      default: { document: { run: { font: 'Arial', size: 22 } } },
-      paragraphStyles: [
-        { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 40, bold: true, font: 'Arial', color: '0f172a' },
-          paragraph: { spacing: { before: 240, after: 160 }, outlineLevel: 0 } },
-        { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 24, bold: true, font: 'Arial', color: '1e293b' },
-          paragraph: { spacing: { before: 360, after: 120 }, outlineLevel: 1 } },
-      ]
-    },
-    sections: [{
-      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
-      children
-    }]
-  });
-
-  const buffer = await Packer.toBuffer(wordDoc);
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${doc.doc_id||'HowTo'}_${doc.process||'doc'}.docx`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  if (exportBtn) exportBtn.textContent = origText;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
