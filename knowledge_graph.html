@@ -22,7 +22,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .topbar-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
 .searchbar{display:flex;gap:6px;align-items:center;}
-.searchbar select{background:rgba(19,21,24,0.7);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;max-width:280px;}
+.searchbar select{background:rgba(19,21,24,0.7);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;width:320px;min-width:200px;}
 .searchbar button{padding:8px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(29,158,117,0.18);color:var(--text);font-size:12px;cursor:pointer;transition:background .15s;white-space:nowrap;}
 .searchbar button:hover{background:rgba(29,158,117,0.3);border-color:rgba(29,158,117,0.5);}
 .nav-link{font-size:12px;color:var(--text-dim);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:8px;transition:all .2s;}
@@ -484,64 +484,74 @@ function renderGraph(docs){
     const procNodes = nodes.filter(n=>n.cat==='process').slice(0,2).map(n=>n.id);
     const l5id = nodes.find(n=>n.cat==='l5'&&n.children&&n.children.includes(ht.id))?.id;
 
-    const spine = [...hierSpine.filter(id=>id!=='root'||(hierSpine.length<3)), l5id, ht.id].filter(Boolean);
+    const spine = [...hierSpine, l5id, ht.id].filter(Boolean);
+
+    // Use the doc title for human readable labels
+    const docTitle = ht.docTitle || ht.doc_id;
+    const shortTitle = docTitle.replace(/^How to (Create |Set Up |Manage )?/i,'').replace(/ in .*/i,'').trim();
 
     if(intentMap['DO']){
       demos.push({
         value:`${ht.doc_id}-do`,
-        label:`How do I create a ${ht.doc_id}?`,
+        label:`How do I create a ${shortTitle}?`,
         path:[...spine, intentMap['DO'].id, ...sysNodes.slice(0,1), ...datNodes.slice(0,2)].filter(id=>nodeMap[id]),
-        title:`Retrieval: DO intent → ${intentMap['DO'].chunk_id||intentMap['DO'].id}`,
-        body:`Query routed to DO intent → ${ht.doc_id} steps chunk retrieved. 5-map context adds systems and data entities. Response contract: numbered steps ending with verification.`
+        title:`Retrieval: DO intent → ${intentMap['DO'].id}`,
+        body:`Query "How do I create a ${shortTitle}?" routed to DO intent. Path: hierarchy spine → ${ht.doc_id} → steps chunk. 5-map context adds systems and data entities. Response contract: numbered steps ending with verification.`
       });
     }
     if(intentMap['FIX']){
       demos.push({
         value:`${ht.doc_id}-fix`,
-        label:`Something not working in ${ht.doc_id}`,
+        label:`${shortTitle} — something not working`,
         path:[...spine, intentMap['FIX'].id, ...sysNodes, ...datNodes.slice(0,1)].filter(id=>nodeMap[id]),
         title:`Retrieval: FIX intent → ${intentMap['FIX'].id}`,
-        body:`Query routed to FIX intent → troubleshoot chunk retrieved. Response contract: Problem / Cause / Fix for each issue. Root cause stated explicitly before fix steps.`
+        body:`Query routed to FIX intent. Path: hierarchy spine → ${ht.doc_id} → troubleshoot chunk. Response contract: Problem / Cause / Fix. Root cause stated explicitly before fix steps.`
       });
     }
     if(intentMap['CONSTRAINT']){
       demos.push({
         value:`${ht.doc_id}-constraint`,
-        label:`Critical rules for ${ht.doc_id}`,
+        label:`${shortTitle} — critical rules`,
         path:[...spine, intentMap['CONSTRAINT'].id, ...sysNodes.slice(0,1), ...datNodes].filter(id=>nodeMap[id]),
         title:`Retrieval: CONSTRAINT intent → ${intentMap['CONSTRAINT'].id}`,
-        body:`Query routed to CONSTRAINT intent → rules chunk retrieved. Response contract: bullet list of rules, each with explicit impact if violated.`
+        body:`Query routed to CONSTRAINT intent. Path: hierarchy spine → ${ht.doc_id} → rules chunk. Response contract: bullet list of rules, each with explicit impact if violated.`
       });
     }
     if(intentMap['CHECK']){
       demos.push({
         value:`${ht.doc_id}-check`,
-        label:`What do I need before ${ht.doc_id}?`,
+        label:`${shortTitle} — what do I need first?`,
         path:[...spine, intentMap['CHECK'].id, ...sysNodes.slice(0,1), ...datNodes.slice(0,2)].filter(id=>nodeMap[id]),
         title:`Retrieval: CHECK intent → ${intentMap['CHECK'].id}`,
-        body:`Query routed to CHECK intent → prerequisites chunk retrieved. Response contract: checkbox-style checklist, each item independently verifiable.`
+        body:`Query routed to CHECK intent. Path: hierarchy spine → ${ht.doc_id} → prerequisites chunk. Response contract: checkbox-style checklist, each item independently verifiable.`
       });
     }
     if(intentMap['LEARN']){
       demos.push({
         value:`${ht.doc_id}-learn`,
-        label:`What is ${ht.doc_id}?`,
+        label:`What is a ${shortTitle}?`,
         path:[...spine, intentMap['LEARN'].id, ...procNodes.slice(0,1)].filter(id=>nodeMap[id]),
         title:`Retrieval: LEARN intent → ${intentMap['LEARN'].id}`,
-        body:`Query routed to LEARN intent → overview or glossary chunk retrieved. Response contract: concise prose, 3-5 sentences per concept.`
+        body:`Query routed to LEARN intent. Path: hierarchy spine → ${ht.doc_id} → overview or glossary chunk. Response contract: concise prose, 3-5 sentences per concept.`
       });
     }
   });
 
-  // Populate dropdown
+  // Populate dropdown — add placeholder if empty
   const select = document.getElementById('demo-query');
   select.innerHTML = '';
-  demos.forEach(d=>{
+  if(demos.length === 0){
     const opt = document.createElement('option');
-    opt.value = d.value;
-    opt.textContent = d.label;
+    opt.textContent = 'No demos available — check JSON loaded';
     select.appendChild(opt);
-  });
+  } else {
+    demos.forEach(d=>{
+      const opt = document.createElement('option');
+      opt.value = d.value;
+      opt.textContent = d.label;
+      select.appendChild(opt);
+    });
+  }
 
   // Demo search handler
   document.getElementById('demo-search').addEventListener('click',()=>{
