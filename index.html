@@ -289,6 +289,28 @@ function renderEditor(){
       </div>
       <div class="section-tabs" id="sectionTabs"></div>
     </div>
+    <div class="hier-row">
+      <div>
+        <div class="hier-label">L1 — Enterprise Service</div>
+        <input class="hier-input" id="hierL1" value="${esc(doc.hierarchy?.l1||'')}" placeholder="e.g. Maintain Railcar Assets" oninput="fieldChange()"/>
+      </div>
+      <div>
+        <div class="hier-label">L2 — E2E Process</div>
+        <input class="hier-input" id="hierL2" value="${esc(doc.hierarchy?.l2||'')}" placeholder="e.g. Plan Asset Maintenance" oninput="fieldChange()"/>
+      </div>
+      <div>
+        <div class="hier-label">L3 — Category</div>
+        <input class="hier-input" id="hierL3" value="${esc(doc.hierarchy?.l3||'')}" placeholder="e.g. Manage Condition Based Maintenance" oninput="fieldChange()"/>
+      </div>
+      <div>
+        <div class="hier-label">L4 — Process Group</div>
+        <input class="hier-input" id="hierL4" value="${esc(doc.hierarchy?.l4||'')}" placeholder="e.g. Work Order Management" oninput="fieldChange()"/>
+      </div>
+      <div>
+        <div class="hier-label">L5 — Process</div>
+        <input class="hier-input" id="hierL5" value="${esc(doc.hierarchy?.l5||'')}" placeholder="e.g. Manage Task Plan" oninput="fieldChange()"/>
+      </div>
+    </div>
     <div class="section-body" id="sectionBody"></div>
     <div class="action-bar">
       <div class="action-bar-left">
@@ -428,6 +450,13 @@ function saveCurrentDoc(){
   doc.doc_id  = document.getElementById('docId')?.value   || doc.doc_id;
   doc.process = document.getElementById('docProcess')?.value || doc.process;
   doc.last_updated = new Date().toISOString().split('T')[0];
+  doc.hierarchy = {
+    l1: document.getElementById('hierL1')?.value || '',
+    l2: document.getElementById('hierL2')?.value || '',
+    l3: document.getElementById('hierL3')?.value || '',
+    l4: document.getElementById('hierL4')?.value || '',
+    l5: document.getElementById('hierL5')?.value || '',
+  };
 
   // Update current section
   if(!doc.sections) doc.sections = {};
@@ -473,7 +502,13 @@ function createDoc(){
   docs[docId] = {
     doc_id: docId, title, process,
     process_keywords: [process.toLowerCase()],
-    hierarchy:{ l1:'', l2:'', l3:'', l4:'', l5:'' },
+    hierarchy:{
+      l1:'Maintain Railcar Assets',
+      l2:'Plan Asset Maintenance',
+      l3:'Manage Condition Based Maintenance',
+      l4:'Work Order Management',
+      l5:''
+    },
     systems:[], related_processes:[], data_entities:[],
     source:'', version:'1.0', author:'Neela Thiagarajan',
     last_updated: new Date().toISOString().split('T')[0],
