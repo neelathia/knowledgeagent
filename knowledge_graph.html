@@ -235,7 +235,7 @@ function buildGraph(docs){
 
     // How-To node
     addNode({id:htId,label:`${docId}\n${doc.title?.split(' ').slice(0,3).join(' ')||'How-To'}`,
-      cat:'howto',r:18,depth:6,parent:l5id,
+      cat:'howto',r:18,depth:6,parent:l5id,doc_id:docId,
       desc:`${doc.title}. Source: ${doc.source||'system validation testing'}. Author: ${doc.author||'Neela Thiagarajan'}.`,
       children:[],docTitle:doc.title});
 
