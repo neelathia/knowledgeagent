@@ -236,6 +236,9 @@ let PROCESS_MAP = {};
 let DOCS = [];
 let loading = false;
 let activeProcess = 'all';
+let sessionLog = [];
+const LOG_KEY = 'ok_query_log';
+const MAX_LOG = 500;
 
 // ── Intent and contract maps ──────────────────────────────────────────────
 const INTENT_MAP = {
@@ -526,6 +529,137 @@ function resetChat(){
   document.getElementById('routePanel').classList.remove('show');
 }
 
+// ── Analytics logging ────────────────────────────────────────────────────
+function logQuery(query, intent, process, chunks){
+  const isGap = chunks.length === 0;
+  const isWeak = chunks.length > 0 && chunks.every(c => c.intent !== intent);
+  const gapReason = !process && !intent ? 'no_match' :
+                    !process ? 'no_process_match' :
+                    chunks.length === 0 ? 'no_chunks' :
+                    isWeak ? 'weak_match' : null;
+
+  const entry = {
+    ts: new Date().toISOString(),
+    query,
+    intent: intent || null,
+    process: process || null,
+    chunks_retrieved: chunks.length,
+    chunk_ids: chunks.map(c=>c.chunk_id),
+    gap: isGap || isWeak,
+    gap_reason: gapReason
+  };
+
+  // Save to session
+  sessionLog.push(entry);
+
+  // Save to persistent log
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    stored.push(entry);
+    // Keep last MAX_LOG entries
+    if(stored.length > MAX_LOG) stored.splice(0, stored.length - MAX_LOG);
+    localStorage.setItem(LOG_KEY, JSON.stringify(stored));
+  } catch(e){ console.warn('Log save failed:', e); }
+
+  // Show gap banner if gap
+  if(entry.gap) updateGapBanner();
+}
+
+function updateGapBanner(){
+  const gaps = sessionLog.filter(e=>e.gap);
+  if(!gaps.length) return;
+  let banner = document.getElementById('gapBanner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'gapBanner';
+    banner.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);
+      border-radius:10px;padding:10px 18px;font-size:12px;color:#fcd34d;
+      font-family:'DM Mono',monospace;z-index:50;display:flex;align-items:center;
+      gap:10px;backdrop-filter:blur(12px);cursor:pointer;transition:all .2s;
+      white-space:nowrap;`;
+    banner.onclick = () => showGapReport();
+    document.getElementById('app').appendChild(banner);
+  }
+  const uniq = new Set(gaps.map(g=>g.process||g.query.split(' ').slice(0,3).join(' ')));
+  banner.innerHTML = `⚠ ${gaps.length} gap${gaps.length!==1?'s':''} this session — ${[...uniq].slice(0,2).join(', ')}${uniq.size>2?'…':''} <span style="opacity:.6">· View report →</span>`;
+}
+
+function showGapReport(){
+  const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
+  const gaps = stored.filter(e=>e.gap);
+
+  // Group gaps by process/query pattern
+  const groups = {};
+  gaps.forEach(g=>{
+    const key = g.process || 'unknown';
+    if(!groups[key]) groups[key]={count:0,queries:[],intents:{}};
+    groups[key].count++;
+    if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
+    if(g.intent) groups[key].intents[g.intent]=(groups[key].intents[g.intent]||0)+1;
+  });
+
+  const rows = Object.entries(groups)
+    .sort((a,b)=>b[1].count-a[1].count)
+    .map(([proc,data])=>{
+      const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0]||'unknown';
+      const suggestion = proc==='unknown'
+        ? 'Add process keywords to manifest or create new How-To'
+        : `Consider adding or expanding content for process: ${proc}`;
+      return `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#fcd34d">${proc}</span>
+          <span style="font-size:11px;color:var(--slate)">${data.count} gap${data.count!==1?'s':''} · top intent: ${topIntent}</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-bottom:4px">Sample queries: ${data.queries.slice(0,2).map(q=>`"${q}"`).join(', ')}</div>
+        <div style="font-size:11px;color:#0ea5e9">→ ${suggestion}</div>
+      </div>`;
+    }).join('');
+
+  // Show in a modal-style overlay
+  let modal = document.getElementById('gapModal');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'gapModal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;`;
+  modal.innerHTML = `
+    <div style="background:#162336;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Knowledge Gap Report</div>
+          <div style="font-size:12px;color:var(--slate);font-family:'DM Mono',monospace;margin-top:4px">${gaps.length} unanswered queries · ${stored.length} total logged</div>
+        </div>
+        <button onclick="document.getElementById('gapModal').remove()" style="background:none;border:none;color:var(--slate);font-size:22px;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      ${rows || '<div style="color:var(--slate);font-size:13px">No gaps recorded yet.</div>'}
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="exportLog()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:8px 16px;color:var(--slate-light);font-size:12px;cursor:pointer">Export Log JSON</button>
+        <button onclick="clearLog()" style="background:transparent;border:1px solid rgba(248,113,113,0.2);border-radius:9px;padding:8px 16px;color:#f87171;font-size:12px;cursor:pointer">Clear Log</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function exportLog(){
+  const stored = localStorage.getItem(LOG_KEY)||'[]';
+  const blob = new Blob([stored],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ok_query_log_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+function clearLog(){
+  if(!confirm('Clear all logged queries? This cannot be undone.')) return;
+  localStorage.removeItem(LOG_KEY);
+  sessionLog = [];
+  const banner = document.getElementById('gapBanner');
+  if(banner) banner.remove();
+  const modal = document.getElementById('gapModal');
+  if(modal) modal.remove();
+}
+
 // ── Send message ──────────────────────────────────────────────────────────
 async function sendMsg(){
   const input = document.getElementById('qInput');
@@ -541,6 +675,7 @@ async function sendMsg(){
 
   const { chunks, intent, process } = retrieve(query);
   showRoute(intent, process, chunks);
+  logQuery(query, intent, process, chunks);
 
   const typingEl = addMsg('bot', '', true);
 
