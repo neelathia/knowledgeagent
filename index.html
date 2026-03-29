@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Knowledge Base Editor</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
   --navy:#0f1e35; --navy-card:#162336; --navy-border:rgba(255,255,255,0.07);
@@ -15,7 +15,7 @@
   --intent-con:#f59e0b; --intent-lrn:#a78bfa;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body{background:var(--navy);color:var(--white);font-family:'Poppins',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
 /* Topbar */
@@ -37,7 +37,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .sidebar-header{padding:16px 16px 10px;border-bottom:1px solid var(--navy-border);}
 .sidebar-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .sidebar-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
-.add-btn{width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.3);border-radius:8px;padding:9px 12px;color:var(--teal);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:8px;}
+.add-btn{width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.3);border-radius:8px;padding:9px 12px;color:var(--teal);font-size:12px;font-family:'Poppins',sans-serif;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:8px;}
 .add-btn:hover{background:rgba(37,99,235,0.2);border-color:rgba(37,99,235,0.5);}
 .doc-list{flex:1;overflow-y:auto;padding:8px;}
 .doc-list::-webkit-scrollbar{width:3px;}
@@ -45,7 +45,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .doc-item{padding:10px 12px;border-radius:9px;cursor:pointer;transition:all .18s;margin-bottom:4px;border:1px solid transparent;}
 .doc-item:hover{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.06);}
 .doc-item.active{background:rgba(37,99,235,0.12);border-color:rgba(37,99,235,0.25);}
-.doc-item-title{font-size:13px;font-weight:500;color:var(--white);margin-bottom:2px;}
+.doc-item-title{font-size:13px;font-weight:500;color:var(--white);margin-bottom:2px;font-family:'Poppins',sans-serif;}
 .doc-item-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
 .doc-item-status{display:flex;align-items:center;gap:6px;margin-top:4px;}
 .status-dot{width:6px;height:6px;border-radius:50%;}
@@ -56,7 +56,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* Doc header */
 .doc-header{padding:16px 24px 0;border-bottom:1px solid var(--navy-border);flex-shrink:0;}
 .doc-meta-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
-.doc-meta-input{background:rgba(255,255,255,0.05);border:1px solid var(--navy-border);border-radius:8px;padding:7px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.doc-meta-input{background:rgba(255,255,255,0.05);border:1px solid var(--navy-border);border-radius:8px;padding:7px 12px;color:var(--white);font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
 .doc-meta-input:focus{border-color:rgba(37,99,235,0.4);}
 .doc-meta-input.title-input{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;flex:1;min-width:200px;}
 .doc-meta-input.id-input{font-family:'DM Mono',monospace;font-size:12px;width:160px;}
@@ -75,7 +75,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .section-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
 .section-panel{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:20px;margin-bottom:16px;}
 .field-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
-.field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;margin-bottom:14px;}
+.field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:var(--white);font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .2s;margin-bottom:14px;}
 .field-input:focus{border-color:rgba(37,99,235,0.4);}
 .field-textarea{resize:vertical;min-height:120px;line-height:1.6;}
 .field-textarea.content-area{min-height:280px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;}
@@ -94,9 +94,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* Bottom action bar */
 .action-bar{padding:14px 24px;border-top:1px solid var(--navy-border);background:rgba(15,30,53,0.8);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .action-bar-left{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--slate);}
-.save-btn{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:11px 24px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,0.3);}
+.save-btn{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:11px 24px;color:white;font-family:'Poppins',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,0.3);}
 .save-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,0.4);}
-.export-btn{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 18px;color:var(--slate-light);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;}
+.export-btn{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 18px;color:var(--slate-light);font-family:'Poppins',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;}
 .export-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
 .save-status{font-family:'DM Mono',monospace;font-size:11px;transition:all .3s;}
 .save-status.saved{color:var(--green);}
@@ -287,6 +287,20 @@ function renderEditor(){
         <input class="doc-meta-input id-input" id="docId" value="${esc(doc.doc_id)}" placeholder="Doc ID" oninput="fieldChange()"/>
         <input class="doc-meta-input process-input" id="docProcess" value="${esc(doc.process)}" placeholder="Process code" oninput="fieldChange()"/>
       </div>
+      <div class="doc-defaults-row">
+        <div class="doc-default-field">
+          <div class="hier-label">Default Business Capability</div>
+          <input class="hier-input" id="defCap" value="${esc(doc.default_capability||'Maintenance Execution')}" placeholder="e.g. Maintenance Execution" oninput="fieldChange()" title="Auto-fills Business Capability for new sections"/>
+        </div>
+        <div class="doc-default-field" style="flex:2">
+          <div class="hier-label">Default Process Stage</div>
+          <input class="hier-input" id="defStage" value="${esc(doc.default_process_stage||'')}" placeholder="e.g. Task Plan Creation → Link to SWO" oninput="fieldChange()" title="Auto-fills Process Stage for new sections"/>
+        </div>
+        <div class="doc-default-field" style="flex:2">
+          <div class="hier-label">Default Business Outcome</div>
+          <input class="hier-input" id="defOutcome" value="${esc(doc.default_outcome||'')}" placeholder="e.g. Work orders generated correctly" oninput="fieldChange()" title="Auto-fills Business Outcome for new sections"/>
+        </div>
+      </div>
       <div class="section-tabs" id="sectionTabs"></div>
     </div>
     <div class="hier-row">
@@ -457,6 +471,9 @@ function saveCurrentDoc(){
     l4: document.getElementById('hierL4')?.value || '',
     l5: document.getElementById('hierL5')?.value || '',
   };
+  doc.default_capability    = document.getElementById('defCap')?.value    || '';
+  doc.default_process_stage = document.getElementById('defStage')?.value  || '';
+  doc.default_outcome       = document.getElementById('defOutcome')?.value || '';
 
   // Update current section
   if(!doc.sections) doc.sections = {};
