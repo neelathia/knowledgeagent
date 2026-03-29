@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Operational Knowledge Graph</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=Syne:wght@400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0c0f;--surface:#131518;--surface-hover:#1a1d22;--border:#2a2d33;
+  --text:#e4e6ea;--text-dim:#6b7078;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:999;}
+
+.topbar{position:fixed;inset:0 0 auto 0;height:66px;z-index:100;background:rgba(10,12,15,0.88);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px;}
+.left{display:flex;flex-direction:column;gap:2px;min-width:320px;}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.03em;white-space:nowrap;}
+.topbar-title span{color:#1D9E75;}
+.topbar-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.nav-link{font-size:12px;color:var(--text-dim);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:8px;transition:all .2s;}
+.nav-link:hover{color:var(--text);border-color:rgba(255,255,255,0.18);}
+.pill{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 10px;border-radius:20px;border:1px solid;}
+.pill-green{color:#10b981;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
+.pill-blue{color:#0ea5e9;border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);}
+
+.legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;user-select:none;transition:color .2s;white-space:nowrap;}
+.legend-item:hover{color:var(--text);}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+
+#graph-container{position:fixed;inset:0;top:66px;}
+svg{width:100%;height:100%;}
+.link{stroke:var(--border);stroke-width:1.2;fill:none;}
+.link.cross{stroke-dasharray:4 3;stroke:#1e2128;}
+.link.hier{stroke:#2a2d33;stroke-width:1.5;}
+.node-group{cursor:pointer;}
+.node-circle{transition:filter .2s,opacity .2s;stroke:rgba(255,255,255,0.08);stroke-width:1.2;}
+.node-label{font-size:10.5px;fill:var(--text-dim);text-anchor:middle;pointer-events:none;transition:fill .2s,opacity .2s;}
+.node-group:hover .node-label{fill:var(--text);}
+.node-group.selected .node-circle{stroke:#fff;stroke-width:2.4;opacity:1;}
+.node-group.selected .node-label{fill:#fff;font-weight:600;}
+.node-ring{fill:none;stroke-width:3;opacity:0;transition:opacity .25s;}
+.node-group.selected .node-ring{opacity:0.28;}
+
+.breadcrumb{position:fixed;top:74px;left:14px;z-index:60;font-size:11px;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:4px;align-items:center;max-width:calc(100vw - 440px);}
+.breadcrumb .sep{opacity:.4;}
+.breadcrumb .bc-item{cursor:pointer;transition:color .15s;}
+.breadcrumb .bc-item:hover{color:var(--text);}
+.breadcrumb .bc-item.active{color:var(--text);font-weight:600;}
+
+.panel{position:fixed;top:66px;right:0;width:400px;bottom:0;z-index:50;background:rgba(19,21,24,0.94);backdrop-filter:blur(18px);border-left:1px solid var(--border);overflow-y:auto;padding:22px 20px;transition:transform .32s cubic-bezier(.4,0,.2,1);transform:translateX(100%);}
+.panel.open{transform:translateX(0);}
+.panel-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;line-height:1;}
+.panel-close:hover{color:var(--text);}
+.panel-badge{display:inline-block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:20px;margin-bottom:10px;}
+.panel-title{font-family:'Syne',sans-serif;font-weight:600;font-size:17px;margin-bottom:6px;line-height:1.25;}
+.panel-desc{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:14px;}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 6px;}
+.meta{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:12px;color:var(--text);}
+.meta .k{display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:4px;}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);color:var(--text-dim);background:rgba(19,21,24,0.6);}
+.panel-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:8px;margin-top:16px;}
+.panel-children{display:flex;flex-direction:column;gap:6px;}
+.panel-child{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;cursor:pointer;transition:background .18s,border-color .18s;display:flex;align-items:flex-start;gap:9px;}
+.panel-child:hover{background:var(--surface-hover);border-color:rgba(255,255,255,0.15);}
+.child-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.child-label{color:var(--text);font-size:13px;}
+.child-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.preview{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:11px;line-height:1.55;color:rgba(228,230,234,0.85);background:rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.07);padding:10px;border-radius:12px;margin-top:8px;}
+
+.toast{position:fixed;left:14px;bottom:14px;z-index:120;width:min(560px,calc(100vw - 28px));background:rgba(19,21,24,0.95);border:1px solid var(--border);border-radius:16px;padding:14px 16px;box-shadow:0 18px 60px rgba(0,0,0,0.6);display:none;}
+.toast.open{display:block;}
+.toast .t{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;margin-bottom:6px;}
+.toast .b{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.toast .x{position:absolute;right:10px;top:10px;border:none;background:none;color:var(--text-dim);font-size:18px;cursor:pointer;}
+
+.zoom-controls{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:60;display:flex;gap:4px;background:rgba(19,21,24,0.88);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:32px;padding:5px;}
+.zoom-btn{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;}
+.zoom-btn:hover{background:var(--surface-hover);}
+
+#loading-overlay{position:fixed;inset:0;top:66px;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+#loading-overlay p{font-family:'DM Mono',monospace;font-size:13px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="left">
+    <div class="topbar-title">Operational <span>Knowledge Graph</span></div>
+    <div class="topbar-sub" id="topbarSub">Loading knowledge base...</div>
+  </div>
+  <div class="topbar-right">
+    <div class="legend" id="legend"></div>
+    <span class="pill pill-green" id="nodePill">— nodes</span>
+    <span class="pill pill-blue" id="chunkPill">— chunks</span>
+    <a href="agent.html" class="nav-link">Agent →</a>
+    <a href="index.html" class="nav-link">Editor →</a>
+  </div>
+</div>
+
+<div id="loading-overlay">
+  <p id="loadingMsg">⟳ Loading knowledge base from manifest...</p>
+</div>
+
+<div class="breadcrumb" id="breadcrumb"></div>
+<div id="graph-container"><svg id="graph"></svg></div>
+
+<div class="panel" id="panel">
+  <button class="panel-close" id="panel-close">&times;</button>
+  <div id="panel-content"></div>
+</div>
+
+<div class="toast" id="toast">
+  <button class="x" id="toast-close">&times;</button>
+  <div class="t" id="toast-title"></div>
+  <div class="b" id="toast-body"></div>
+</div>
+
+<div class="zoom-controls">
+  <button class="zoom-btn" id="zoom-in">+</button>
+  <button class="zoom-btn" id="zoom-reset">⇳</button>
+  <button class="zoom-btn" id="zoom-out">−</button>
+</div>
+
+<script>
+function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+const INTENT_COLOR = {
+  DO:'#10b981',FIX:'#f87171',CHECK:'#3b82f6',CONSTRAINT:'#f59e0b',LEARN:'#a78bfa'
+};
+
+const CAT = {
+  root:    {color:'#f0a832',label:'KB Root'},
+  l1:      {color:'#4fafee',label:'L1 Service'},
+  l2:      {color:'#6dd4a0',label:'L2 E2E Process'},
+  l3:      {color:'#b888f0',label:'L3 Category'},
+  l4:      {color:'#f07a6d',label:'L4 Process Group'},
+  l5:      {color:'#ffd166',label:'L5 Process'},
+  howto:   {color:'#e4e6ea',label:'How-To Doc'},
+  chunk:   {color:'#1D9E75',label:'Knowledge Chunk'},
+  system:  {color:'#BA7517',label:'System'},
+  data:    {color:'#993C1D',label:'Data Entity'},
+  process: {color:'#7F77DD',label:'Related Process'},
+};
+
+function nodeColor(d){
+  if(d.cat==='chunk') return INTENT_COLOR[d.intent] || CAT.chunk.color;
+  return CAT[d.cat]?.color || '#888';
+}
+
+// ── Build graph from loaded docs ──────────────────────────────────────────
+function buildGraph(docs){
+  const nodes = [];
+  const crossLinks = [];
+  const nodeMap = {};
+
+  function addNode(n){ nodes.push(n); nodeMap[n.id]=n; return n; }
+
+  // ── Hierarchy spine (shared across all docs) ──
+  addNode({id:'root',label:'Operational\nKnowledge Base',cat:'root',r:30,depth:0,
+    desc:'Central operational knowledge base. All How-To content organized by enterprise service → process → document → knowledge chunk.',
+    children:[]});
+
+  // Collect unique L1-L4 values across all docs
+  const l1Set = new Set(), l2Set = new Set(), l3Set = new Set(), l4Set = new Set();
+  docs.forEach(doc => {
+    const h = doc.hierarchy || {};
+    if(h.l1) l1Set.add(h.l1);
+    if(h.l2) l2Set.add(h.l2);
+    if(h.l3) l3Set.add(h.l3);
+    if(h.l4) l4Set.add(h.l4);
+  });
+
+  // Add shared hierarchy nodes
+  const hierIds = ['root'];
+  if(l1Set.size){
+    const l1 = [...l1Set][0];
+    addNode({id:'l1',label:l1.replace(/ /g,'\n'),cat:'l1',r:24,depth:1,parent:'root',
+      desc:`L1 Enterprise Service. Entry point for all ${l1.toLowerCase()} knowledge.`,children:[]});
+    nodeMap['root'].children = ['l1']; hierIds.push('l1');
+  }
+  if(l2Set.size){
+    const l2 = [...l2Set][0];
+    addNode({id:'l2',label:l2.replace(/ /g,'\n'),cat:'l2',r:21,depth:2,parent:'l1',
+      desc:`L2 E2E Process. Covers the full planning lifecycle.`,children:[]});
+    if(nodeMap['l1']) nodeMap['l1'].children=['l2']; hierIds.push('l2');
+  }
+  if(l3Set.size){
+    const l3 = [...l3Set][0];
+    addNode({id:'l3',label:l3.replace(/ /g,'\n'),cat:'l3',r:19,depth:3,parent:'l2',
+      desc:`L3 Category. Groups all related processes.`,children:[]});
+    if(nodeMap['l2']) nodeMap['l2'].children=['l3']; hierIds.push('l3');
+  }
+  if(l4Set.size){
+    const l4 = [...l4Set][0];
+    addNode({id:'l4',label:l4.replace(/ /g,'\n'),cat:'l4',r:17,depth:4,parent:'l3',
+      desc:`L4 Process Group. Contains all related processes and work.`,children:[]});
+    if(nodeMap['l3']) nodeMap['l3'].children=['l4']; hierIds.push('l4');
+  }
+
+  // ── Per-doc: L5, howto, chunks ──
+  const allSystems = new Set();
+  const allDataEntities = new Set();
+  const allRelatedProcesses = new Set();
+
+  docs.forEach((doc, di) => {
+    const docId   = doc.doc_id;
+    const process = doc.process;
+    const l5label = doc.hierarchy?.l5 || doc.title;
+    const l5id    = `l5-${docId}`;
+    const htId    = `howto-${docId}`;
+
+    // L5 node
+    addNode({id:l5id,label:l5label.replace(/ /g,'\n'),cat:'l5',r:16,depth:5,parent:'l4',
+      desc:`L5 Process. ${doc.title}. Process code: ${process}.`,
+      children:[htId]});
+    if(nodeMap['l4']){
+      if(!nodeMap['l4'].children) nodeMap['l4'].children=[];
+      nodeMap['l4'].children.push(l5id);
+    }
+    hierIds.push(l5id);
+
+    // How-To node
+    addNode({id:htId,label:`${docId}\n${doc.title?.split(' ').slice(0,3).join(' ')||'How-To'}`,
+      cat:'howto',r:18,depth:6,parent:l5id,
+      desc:`${doc.title}. Source: ${doc.source||'system validation testing'}. Author: ${doc.author||'Neela Thiagarajan'}.`,
+      children:[],docTitle:doc.title});
+
+    // Chunk nodes
+    const chunkIds = [];
+    Object.entries(doc.sections||{}).forEach(([secName,sec]) => {
+      if(!sec.content?.trim()) return;
+      const cid = `${docId}-${secName}`;
+      addNode({
+        id:cid,label:secName,cat:'chunk',r:20,intent:sec.intent||'LEARN',
+        depth:7,parent:htId,process,doc_id:docId,section:secName,
+        content:sec.content,keywords:sec.keywords||[],
+        business_capability:sec.business_capability||'',
+        business_outcome:sec.business_outcome||'',
+        process_stage:sec.process_stage||'',
+        data_triggers:sec.data_triggers||'',
+        desc:`${sec.intent||'LEARN'} · ${secName}. ${sec.business_outcome||''}`,
+        children:[]
+      });
+      chunkIds.push(cid);
+    });
+    nodeMap[htId].children = chunkIds;
+
+    // Collect shared nodes
+    (doc.systems||[]).forEach(s => allSystems.add(s));
+    (doc.data_entities||[]).forEach(e => allDataEntities.add(e));
+    (doc.related_processes||[]).forEach(p => allRelatedProcesses.add(p));
+
+    // Cross-links: chunks → systems/data (just first few to keep it clean)
+    const docChunks = chunkIds.map(id=>nodeMap[id]);
+    const doChunk   = docChunks.find(c=>c.intent==='DO');
+    const fixChunk  = docChunks.find(c=>c.intent==='FIX');
+    const ruChunk   = docChunks.find(c=>c.intent==='CONSTRAINT');
+
+    if(doChunk){
+      (doc.systems||[]).slice(0,2).forEach(s => crossLinks.push({source:doChunk.id,target:`sys-${s}`,label:'created in'}));
+      (doc.related_processes||[]).slice(0,2).forEach(p => crossLinks.push({source:doChunk.id,target:`proc-${p}`,label:'used by'}));
+    }
+    if(fixChunk && doc.systems?.[1]) crossLinks.push({source:fixChunk.id,target:`sys-${doc.systems[1]}`,label:'relates to'});
+    if(ruChunk  && doc.systems?.[0]) crossLinks.push({source:ruChunk.id, target:`sys-${doc.systems[0]}`,label:'enforced by'});
+    (doc.data_entities||[]).slice(0,2).forEach(e => {
+      if(doChunk) crossLinks.push({source:doChunk.id,target:`data-${e}`,label:'produces'});
+    });
+  });
+
+  // ── Shared system / data / process nodes ──
+  allSystems.forEach(s => {
+    const id = `sys-${s}`;
+    if(!nodeMap[id]) addNode({id,label:s.replace(/ /g,'\n'),cat:'system',r:15,
+      desc:`System involved in enterprise asset management operations.`});
+  });
+  allDataEntities.forEach(e => {
+    const id = `data-${e}`;
+    if(!nodeMap[id]) addNode({id,label:e.replace(/ /g,'\n'),cat:'data',r:13,
+      desc:`Key data entity used across processes.`});
+  });
+  allRelatedProcesses.forEach(p => {
+    const id = `proc-${p}`;
+    if(!nodeMap[id]) addNode({id,label:p.replace(/ /g,'\n'),cat:'process',r:15,
+      desc:`Related process that references How-To documentation.`});
+  });
+
+  // ── Build tree links ──
+  const treeLinks = [];
+  nodes.forEach(n => {
+    (n.children||[]).forEach(cid => {
+      if(nodeMap[cid]) treeLinks.push({source:n.id,target:cid,type:'tree'});
+    });
+  });
+
+  const validCross = crossLinks.filter(l => nodeMap[l.source] && nodeMap[l.target])
+    .map(l => ({...l,type:'cross'}));
+
+  return {nodes, nodeMap, allLinks:[...treeLinks,...validCross], hierIds};
+}
+
+// ── D3 rendering ──────────────────────────────────────────────────────────
+function renderGraph(docs){
+  const {nodes, nodeMap, allLinks, hierIds} = buildGraph(docs);
+
+  const W = window.innerWidth;
+  const H = window.innerHeight - 66;
+  const svg = d3.select('#graph').attr('width',W).attr('height',H);
+  const g = svg.append('g');
+
+  const zoom = d3.zoom().scaleExtent([0.15,6]).on('zoom',e=>g.attr('transform',e.transform));
+  svg.call(zoom);
+  const initT = d3.zoomIdentity.translate(W*0.4,H*0.52).scale(0.78);
+  svg.call(zoom.transform,initT);
+
+  // Layout forces
+  const l5ids  = nodes.filter(n=>n.cat==='l5').map(n=>n.id);
+  const htIds  = nodes.filter(n=>n.cat==='howto').map(n=>n.id);
+  const chkIds = nodes.filter(n=>n.cat==='chunk').map(n=>n.id);
+  const sysIds = nodes.filter(n=>n.cat==='system').map(n=>n.id);
+  const datIds = nodes.filter(n=>n.cat==='data').map(n=>n.id);
+  const prIds  = nodes.filter(n=>n.cat==='process').map(n=>n.id);
+
+  function xTarget(d){
+    if(hierIds.includes(d.id))  return -W*0.34;
+    if(htIds.includes(d.id))    return -W*0.18;
+    if(chkIds.includes(d.id))   return -W*0.02;
+    if(sysIds.includes(d.id))   return  W*0.28;
+    if(datIds.includes(d.id))   return -W*0.28;
+    if(prIds.includes(d.id))    return  W*0.18;
+    return 0;
+  }
+
+  function yTarget(d){
+    if(hierIds.includes(d.id)){
+      const i = hierIds.indexOf(d.id);
+      return -H*0.42 + i*72;
+    }
+    if(htIds.includes(d.id)){
+      const i = htIds.indexOf(d.id);
+      return -H*0.3 + i*140;
+    }
+    if(chkIds.includes(d.id)){
+      const i = chkIds.indexOf(d.id);
+      const perDoc = 6;
+      const docIdx = Math.floor(i/perDoc);
+      const secIdx = i%perDoc;
+      return -H*0.38 + docIdx*140 + secIdx*72;
+    }
+    if(sysIds.includes(d.id)){
+      const i = sysIds.indexOf(d.id);
+      return -H*0.2 + i*90;
+    }
+    if(datIds.includes(d.id)){
+      const i = datIds.indexOf(d.id);
+      return -H*0.3 + i*80;
+    }
+    if(prIds.includes(d.id)){
+      const i = prIds.indexOf(d.id);
+      return -H*0.2 + i*90;
+    }
+    return 0;
+  }
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(allLinks).id(d=>d.id)
+      .distance(d=>d.type==='cross'?200:d.type==='tree'&&hierIds.includes(d.source.id||d.source)?82:95)
+      .strength(d=>d.type==='cross'?0.07:0.3))
+    .force('charge',d3.forceManyBody().strength(d=>-(d.r*d.r*3.0)))
+    .force('collision',d3.forceCollide().radius(d=>d.r+18).strength(0.85))
+    .force('center',d3.forceCenter(0,0))
+    .force('x',d3.forceX(d=>xTarget(d)).strength(0.26))
+    .force('y',d3.forceY(d=>yTarget(d)).strength(0.26))
+    .alphaDecay(0.025).velocityDecay(0.3);
+
+  const link = g.append('g').selectAll('line')
+    .data(allLinks).join('line')
+    .attr('class',d=>{
+      if(d.type==='cross') return 'link cross';
+      if(hierIds.includes(d.source.id||d.source)) return 'link hier';
+      return 'link';
+    });
+
+  const node = g.append('g').selectAll('.node-group')
+    .data(nodes).join('g')
+    .attr('class','node-group')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}))
+    .on('click',(e,d)=>{e.stopPropagation();selectNode(d,node,link,nodeMap,allLinks,svg,zoom,W,H);})
+    .on('dblclick',(e,d)=>{e.stopPropagation();zoomTo(d,svg,zoom,W,H);});
+
+  node.append('circle').attr('class','node-ring')
+    .attr('r',d=>d.r+7).attr('stroke',d=>nodeColor(d));
+  node.append('circle').attr('class','node-circle')
+    .attr('r',d=>d.r).attr('fill',d=>nodeColor(d))
+    .attr('opacity',d=>hierIds.includes(d.id)?0.92:0.82)
+    .style('filter',d=>`drop-shadow(0 2px 8px ${nodeColor(d)}44)`);
+  node.append('text').attr('class','node-label').attr('dy','0.35em')
+    .each(function(d){
+      const sel=d3.select(this);
+      const lines=(d.label||'').split('\n');
+      sel.selectAll('tspan').remove();
+      lines.forEach((line,i)=>sel.append('tspan').attr('x',0)
+        .attr('dy',i===0?(lines.length>1?'-0.3em':'0'):'1.2em').text(line));
+    });
+
+  sim.on('tick',()=>{
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+
+  // Legend
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML='';
+  Object.entries(CAT).forEach(([key,val])=>{
+    legendEl.innerHTML+=`<div class="legend-item" data-cat="${key}">
+      <div class="legend-dot" style="background:${val.color}"></div>${val.label}</div>`;
+  });
+  let focusedCat=null;
+  document.querySelectorAll('.legend-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const cat=item.getAttribute('data-cat');
+      if(focusedCat===cat){focusedCat=null;resetFocus(node,link);}
+      else{focusedCat=cat;applyFocus(cat,node,link);}
+    });
+  });
+
+  // Topbar counts
+  const chunkCount = nodes.filter(n=>n.cat==='chunk').length;
+  const docCount   = nodes.filter(n=>n.cat==='howto').length;
+  document.getElementById('topbarSub').textContent =
+    `${docCount} How-To doc${docCount!==1?'s':''} · ${chunkCount} chunks · 5-map metadata · Neela Thiagarajan`;
+  document.getElementById('nodePill').textContent  = `${nodes.length} nodes`;
+  document.getElementById('chunkPill').textContent = `${chunkCount} chunks`;
+
+  // Zoom controls
+  document.getElementById('zoom-in').addEventListener('click',()=>svg.transition().duration(180).call(zoom.scaleBy,1.3));
+  document.getElementById('zoom-out').addEventListener('click',()=>svg.transition().duration(180).call(zoom.scaleBy,0.77));
+  document.getElementById('zoom-reset').addEventListener('click',()=>svg.transition().duration(280).call(zoom.transform,initT));
+
+  // Click background to deselect
+  svg.on('click',()=>{
+    node.classed('selected',false);closePanel();updateBC(null);
+    link.style('stroke',null).style('stroke-width',null).attr('opacity',1);
+  });
+
+  document.getElementById('panel-close').addEventListener('click',closePanel);
+  document.getElementById('toast-close').addEventListener('click',()=>document.getElementById('toast').classList.remove('open'));
+
+  window.selectAndZoom = id=>{
+    const d=nodeMap[id]; if(!d) return;
+    selectNode(d,node,link,nodeMap,allLinks,svg,zoom,W,H);
+    zoomTo(d,svg,zoom,W,H);
+  };
+
+  document.getElementById('loading-overlay').style.display='none';
+}
+
+// ── Selection ─────────────────────────────────────────────────────────────
+let selectedId = null;
+
+function selectNode(d,node,link,nodeMap,allLinks,svg,zoom,W,H){
+  if(selectedId===d.id){ selectedId=null; node.classed('selected',false); closePanel(); updateBC(null);
+    link.style('stroke',null).style('stroke-width',null).attr('opacity',1); return; }
+  selectedId=d.id;
+  node.classed('selected',n=>n.id===d.id);
+  const color=nodeColor(d);
+  link
+    .style('stroke',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+      return(s===d.id||t===d.id)?color:(l.type==='cross'?'#1e2128':getCSS('--border'));})
+    .style('stroke-width',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+      return(s===d.id||t===d.id)?2.5:1.2;})
+    .attr('opacity',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+      return(s===d.id||t===d.id)?1:0.14;});
+  openPanel(d,allLinks,nodeMap);
+  updateBC(d,nodeMap);
+}
+
+function zoomTo(d,svg,zoom,W,H){
+  const t=d3.zoomTransform(svg.node());
+  const k=Math.min(2.0,Math.max(0.7,t.k));
+  svg.transition().duration(420).call(zoom.transform,
+    d3.zoomIdentity.translate(W/2,H/2).scale(k).translate(-d.x,-d.y));
+}
+
+function openPanel(d,allLinks,nodeMap){
+  document.getElementById('panel').classList.add('open');
+  const color=nodeColor(d);
+  const badge=`<div class="panel-badge" style="background:${color}22;color:${color};border:1px solid ${color}55">${CAT[d.cat]?.label||d.cat}</div>`;
+  const title=(d.label||'').replace(/\n/g,' ');
+
+  const connected=allLinks.filter(l=>{const s=l.source.id||l.source,t=l.target.id||l.target;return s===d.id||t===d.id;});
+
+  let metaHtml='';
+  if(d.cat==='chunk'){
+    metaHtml=`<div class="meta-grid">
+      <div class="meta"><span class="k">Section</span>${d.section||'—'}</div>
+      <div class="meta"><span class="k">Intent</span>${d.intent||'—'}</div>
+      <div class="meta"><span class="k">Doc</span>${d.doc_id||'—'}</div>
+      <div class="meta"><span class="k">Connections</span>${connected.length}</div>
+    </div>
+    ${d.keywords?.length?`<div class="chiprow">${d.keywords.map(k=>`<span class="chip">${k}</span>`).join('')}</div>`:''}
+    ${d.process_stage?`<div class="panel-section-label">Process stage</div><div style="font-size:12px;color:var(--text-dim)">${d.process_stage}</div>`:''}
+    ${d.content?`<div class="panel-section-label">Content preview</div><div class="preview">${escHtml(d.content.substring(0,400))}${d.content.length>400?'…':''}</div>`:''}`;
+  } else {
+    metaHtml=`<div class="meta-grid">
+      <div class="meta"><span class="k">Type</span>${CAT[d.cat]?.label||d.cat}</div>
+      <div class="meta"><span class="k">Connections</span>${connected.length}</div>
+    </div>`;
+  }
+
+  const relNodes=connected.map(l=>{
+    const s=l.source.id||l.source,t=l.target.id||l.target;
+    const other=nodeMap[s===d.id?t:s];
+    return other?{other,label:l.label||''}:null;
+  }).filter(Boolean);
+
+  const relHtml=relNodes.length?`<div class="panel-section-label">Connected nodes</div>
+    <div class="panel-children">${relNodes.slice(0,14).map(x=>{
+      const c=nodeColor(x.other);
+      const lbl=(x.other.label||'').replace(/\n/g,' ');
+      return `<div class="panel-child" onclick="selectAndZoom('${x.other.id}')">
+        <div class="child-dot" style="background:${c}"></div>
+        <div><div class="child-label">${lbl}</div>
+        <div class="child-sub">${x.label} · ${CAT[x.other.cat]?.label||x.other.cat}</div></div></div>`;
+    }).join('')}</div>`:'';
+
+  document.getElementById('panel-content').innerHTML=
+    `${badge}<div class="panel-title">${title}</div><div class="panel-desc">${d.desc||''}</div>${metaHtml}${relHtml}`;
+}
+
+function closePanel(){ document.getElementById('panel').classList.remove('open'); }
+
+function updateBC(d,nodeMap){
+  const el=document.getElementById('breadcrumb');
+  if(!d){el.innerHTML='';return;}
+  const path=[];let cur=d;
+  while(cur){path.unshift(cur);cur=cur.parent&&nodeMap?nodeMap[cur.parent]:null;}
+  el.innerHTML=path.map((n,i)=>{
+    const cls=i===path.length-1?'bc-item active':'bc-item';
+    const lbl=(n.label||'').replace(/\n/g,' ');
+    return `<span class="${cls}" onclick="selectAndZoom('${n.id}')">${lbl}</span>`+(i<path.length-1?`<span class="sep">›</span>`:'');
+  }).join('')+(d.intent?` <span class="sep">›</span><span style="color:${nodeColor(d)}99;font-size:10px">${d.intent}</span>`:'');
+}
+
+function applyFocus(cat,node,link){
+  node.selectAll('.node-circle').attr('opacity',d=>d.cat===cat?1:0.07);
+  node.selectAll('.node-label').attr('opacity',d=>d.cat===cat?1:0.05);
+  link.attr('opacity',l=>((l.source.cat===cat)||(l.target.cat===cat))?0.9:0.05);
+}
+function resetFocus(node,link){
+  node.selectAll('.node-circle').attr('opacity',0.82);
+  node.selectAll('.node-label').attr('opacity',1);
+  link.attr('opacity',1);
+}
+function escHtml(s){return(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');}
+
+// ── Load and render ───────────────────────────────────────────────────────
+async function init(){
+  try {
+    const manifestRes = await fetch('knowledge_base/manifest.json');
+    if(!manifestRes.ok) throw new Error('manifest.json not found');
+    const manifest = await manifestRes.json();
+
+    document.getElementById('loadingMsg').textContent =
+      `⟳ Loading ${manifest.docs.length} document${manifest.docs.length!==1?'s':''}...`;
+
+    const docs = [];
+    for(const filename of manifest.docs){
+      try {
+        const res = await fetch(`knowledge_base/${filename}`);
+        if(res.ok) docs.push(await res.json());
+      } catch(e){ console.warn(`Failed to load ${filename}`); }
+    }
+
+    if(!docs.length) throw new Error('No documents loaded');
+    renderGraph(docs);
+
+  } catch(e){
+    document.getElementById('loadingMsg').textContent =
+      `⚠️ ${e.message}. Make sure knowledge_base/manifest.json exists and lists your JSON files.`;
+    console.error(e);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

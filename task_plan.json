@@ -1,0 +1,87 @@
+{
+  "doc_id": "MAINT-TP-001",
+  "title": "How to Create a Task Plan",
+  "process": "TASK-PLAN",
+  "process_keywords": [
+    "task plan", "task plans", "job plan", "job plans",
+    "checklist", "billing relief", "sequence 10", "sequence 20",
+    "active checklist", "required entry", "follow-up task plan",
+    "copy to work order", "nonconformity", "wear chart"
+  ],
+  "hierarchy": {
+    "l1": "Maintain Railcar Assets",
+    "l2": "Plan Asset Maintenance",
+    "l3": "Manage Condition Based Maintenance",
+    "l4": "Work Order Management",
+    "l5": "Manage Task Plan"
+  },
+  "systems": ["EAM system", "Mobile field app", "Billing system"],
+  "related_processes": ["WGC campaign", "PMC campaign", "Standard Work Order"],
+  "data_entities": ["Task Plan", "Work Order", "Checklist Item", "Billing Relief Code", "Document Reference"],
+  "source": "System validation testing — March 2026",
+  "version": "1.0",
+  "author": "Neela Thiagarajan",
+  "last_updated": "2026-03-29",
+  "sections": {
+    "overview": {
+      "intent": "LEARN",
+      "audience": "all",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Planners understand what a Task Plan is, when to use it, and why it must exist before any campaign or work order can be created",
+      "process_stage": "Pre-Campaign Setup → Task Plan Creation",
+      "data_triggers": "Task Plan must exist before Standard Work Order can link to it · Checklist items and billing codes defined once and inherited by all work orders",
+      "keywords": ["task plan", "job plan", "reusable", "work order template", "WGC", "PMC"],
+      "content": "A Task Plan in the EAM system defines HOW maintenance work is performed. It replaces the legacy Job Plan and serves as the foundational work template for generating work orders.\n\nA Task Plan specifies the standard, repeatable instructions that appear on every work order:\n- Checklist items (inspection steps or measurement points)\n- Billing relief codes (valid completion outcomes for automated work order closure)\n- Reference documents (linked by name/code to content on handheld devices)\n- Follow-up rules (conditions that trigger additional work orders)\n\nTask Plans are REUSABLE. One Task Plan can be referenced by multiple Standard Work Orders and PM Schedules. Used by both WGC (Corrective Maintenance) and PMC (Preventive Maintenance) campaigns."
+    },
+    "prerequisites": {
+      "intent": "CHECK",
+      "audience": "planner",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Task Plan creation succeeds on first attempt — no rework from missing Engineering inputs or incorrect document references",
+      "process_stage": "Pre-Task Plan Creation",
+      "data_triggers": "Document names must match exactly what exists on handheld devices · Engineering is source of truth for all Task Plan content",
+      "keywords": ["prerequisites", "before you start", "billing codes", "document name", "Engineering", "permissions"],
+      "content": "Before creating a Task Plan you must have:\n\n1. Access to the EAM system with Task Plan creation permissions\n2. Work instructions and checklist items from Engineering — what technicians will inspect or perform, whether inspection-based or measurement-based\n3. Billing relief codes from Engineering — at least two reference numbers (entered manually in current phase)\n4. Document name/code from Engineering — must match EXACTLY what exists on handheld devices\n5. Sub Work Type value if required — confirm with Process SME (pending confirmation — leave blank until confirmed)\n6. Next available Task Plan number — check list view first, numbers are sequential"
+    },
+    "steps": {
+      "intent": "DO",
+      "audience": "planner",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Task Plan created with all required components — checklist, billing codes, document reference — ready to be linked by Standard Work Orders and PM Schedules",
+      "process_stage": "Task Plan Creation → Link to Standard Work Order or PM Schedule",
+      "data_triggers": "Work Order Type = Campaign must be set before Save · Active Checklist checkbox must remain unchecked · Required Entry must be Warning not Yes · Follow-up Task Plan must be linked on Sequence 10",
+      "keywords": ["create", "steps", "navigate", "checklist", "billing", "document", "save", "sequence", "Work Order Type", "Campaign"],
+      "content": "Steps to Create a Task Plan:\n\nSTEP 1 — Header Details:\n1. Navigate: Work > Work Order Planning > Task Plans\n2. Click New Record icon\n3. Enter unique Task Plan number (sequential — check list view first)\n4. Enter Description — clear and searchable\n5. Set Work Order Type = Campaign (CRITICAL before Save)\n\nSTEP 2 — Billing Relief Codes (Billing tab):\n1. Navigate to Billing tab\n2. Add at least two billing relief codes from Engineering — enter reference numbers manually\n\nSTEP 3 — Checklist (Checklist tab):\n1. Navigate to Checklist tab\n2. Add items with sequence numbers 10, 20, 30 (increment by 10)\n3. Sequence 10 = inspection/primary, Sequence 20 = measurement (wear chart)\n4. For wear chart: check Enable Nonconformities; set type = Measurement\n5. Follow-up Task Plan: link on Sequence 10 ONLY\n6. Do NOT check Active Checklist checkbox\n7. Set Required Entry = Warning (not Yes)\n\nSTEP 4 — Documents (More tab > Documents):\n1. Navigate More tab > Documents\n2. Add Document — enter name/code exactly as Engineering provided\n3. Check Copy to Work Order on PRIMARY document only\n\nSTEP 5 — Save:\nEnter Sub Work Type if required and confirmed, then click Save\n\nVERIFY: Task Plan visible in list, all tabs populated"
+    },
+    "rules": {
+      "intent": "CONSTRAINT",
+      "audience": "planner",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Task Plan errors prevented at creation time — no rework from incorrect type, checklist configuration, or document setup failures",
+      "process_stage": "Task Plan Creation → Link to Standard Work Order or PM Schedule",
+      "data_triggers": "Work Order Type = Campaign required for lookup visibility · Active Checklist controls checklist display · Required Entry = Yes blocks automated closure · Follow-up Task Plan on Sequence 10 triggers follow-up WO",
+      "keywords": ["rules", "critical", "must", "Active Checklist", "Required Entry", "Sequence 10", "follow-up", "Work Order Type", "documents are references"],
+      "content": "Critical Rules — Task Plan:\n\nWORK ORDER TYPE MUST BE CAMPAIGN\nMust be set before Save. If wrong, Task Plan won't appear in Standard Work Order Activities tab lookup.\n\nDO NOT CHECK ACTIVE CHECKLIST\nIf Active Checklist checkbox is checked, checklist items will NOT appear on generated work orders.\n\nREQUIRED ENTRY = WARNING NOT YES\nIf set to Yes on any checklist item, Mobile field app blocks work order closure. Automated closure will fail.\n\nFOLLOW-UP TASK PLAN ON SEQUENCE 10 ONLY\nThe follow-up Task Plan field on Sequence 20 is NOT honored by the system.\n\nSEQUENCE NUMBERS IN INCREMENTS OF 10\nUse 10, 20, 30 not 1, 2, 3. Allows future insertions without renumbering.\n\nONE DOCUMENT WITH COPY TO WORK ORDER\nMultiple checked documents cause unpredictable behavior on handhelds.\n\nDOCUMENTS ARE REFERENCES NOT UPLOADS\nFile lives on handheld devices. Name must match exactly.\n\nDO NOT DUPLICATE TASK PLANS\nCheck if a suitable Task Plan already exists before creating a new one."
+    },
+    "troubleshoot": {
+      "intent": "FIX",
+      "audience": "planner",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Task Plan configuration errors resolved without work order regeneration or data corruption",
+      "process_stage": "Task Plan Creation → Work Order Generation → Field Execution",
+      "data_triggers": "Work Order Type = Campaign required for lookup · Active Checklist controls display · Required Entry = Yes blocks closure · Follow-up Task Plan on Sequence 10 triggers follow-up WO",
+      "keywords": ["troubleshoot", "not visible", "checklist missing", "work order not closing", "follow-up not created", "document missing"],
+      "content": "Task Plan Troubleshooting:\n\nProblem: Task Plan not visible in Standard Work Order Activities tab lookup\nCause: Work Order Type not set to Campaign, or wrong organization.\nFix: Verify Work Order Type = Campaign. Search by partial number. Confirm correct organization.\n\nProblem: Checklist items not appearing on generated work orders\nCause: Active Checklist checkbox is checked on the Task Plan.\nFix: Open Task Plan — confirm Active Checklist is NOT checked. Verify Task Plan is linked on SWO Activities tab.\n\nProblem: Work orders not closing automatically after field submission\nCause: Required Entry is set to Yes on one or more checklist items.\nFix: Open Task Plan > Checklist — change Required Entry from Yes to Warning on all items.\n\nProblem: Follow-up work order not created after inspection\nCause: Follow-up Task Plan linked on Sequence 20 instead of Sequence 10.\nFix: Open Task Plan > Checklist — select Sequence 10 and link follow-up Task Plan there.\n\nProblem: Primary document missing from field user's work order on handheld\nCause: Copy to Work Order not checked, or document name doesn't match handheld.\nFix: Confirm Copy to Work Order checked on primary document only. Confirm document name matches Engineering confirmation."
+    },
+    "glossary": {
+      "intent": "LEARN",
+      "audience": "all",
+      "business_capability": "Maintenance Execution",
+      "business_outcome": "Users understand key Task Plan terms before creating or troubleshooting",
+      "process_stage": "All Task Plan stages",
+      "data_triggers": "Term definitions — reference only, no system actions triggered",
+      "keywords": ["definition", "billing relief code", "Active Checklist", "Required Entry", "nonconformity", "follow-up", "Copy to Work Order", "document reference"],
+      "content": "Task Plan Glossary:\n\nTask Plan: Work instruction template replacing legacy Job Plan. Reusable across multiple work orders and campaigns.\n\nBilling Relief Code: Code defining valid completion outcome. When technician enters matching code, system can auto-close the work order.\n\nActive Checklist (checkbox): If checked, checklist items DO NOT appear on work orders. Must remain unchecked.\n\nRequired Entry: Must be set to Warning not Yes. If Yes, automated work order closure is blocked.\n\nSequence Number: Order number for checklist items (10, 20, 30). Increments of 10 allow future insertions.\n\nFollow-up Task Plan: Linked on Sequence 10 only. Triggers creation of additional work order when activated.\n\nCopy to Work Order: Designates primary document for mobile field application. Only one document should have this checked.\n\nDocument Reference: Link to document name/code on handheld devices. EAM system does not store the file itself.\n\nNonconformity: Mechanism for measurement-based checklist items (wear chart). Captures recorded values for threshold evaluation."
+    }
+  }
+}

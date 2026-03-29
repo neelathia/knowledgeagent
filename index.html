@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Knowledge Base Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0f1e35; --navy-card:#162336; --navy-border:rgba(255,255,255,0.07);
+  --blue:#2563eb; --teal:#0ea5e9; --green:#10b981; --gold:#f59e0b;
+  --red:#f87171; --purple:#a78bfa; --orange:#fb923c;
+  --white:#f1f5f9; --slate:#94a3b8; --slate-light:#cbd5e1;
+  --intent-do:#10b981; --intent-fix:#f87171; --intent-chk:#3b82f6;
+  --intent-con:#f59e0b; --intent-lrn:#a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:58px;border-bottom:1px solid var(--navy-border);background:rgba(15,30,53,0.9);backdrop-filter:blur(12px);flex-shrink:0;position:relative;z-index:10;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--white);}
+.topbar-sub{font-size:11px;color:var(--slate);font-family:'DM Mono',monospace;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.pill{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;}
+.pill-green{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
+.pill-blue{color:var(--teal);border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);}
+
+/* Layout */
+.app{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* Sidebar */
+.sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--navy-border);display:flex;flex-direction:column;background:rgba(15,30,53,0.5);}
+.sidebar-header{padding:16px 16px 10px;border-bottom:1px solid var(--navy-border);}
+.sidebar-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sidebar-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
+.add-btn{width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.3);border-radius:8px;padding:9px 12px;color:var(--teal);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:8px;}
+.add-btn:hover{background:rgba(37,99,235,0.2);border-color:rgba(37,99,235,0.5);}
+.doc-list{flex:1;overflow-y:auto;padding:8px;}
+.doc-list::-webkit-scrollbar{width:3px;}
+.doc-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+.doc-item{padding:10px 12px;border-radius:9px;cursor:pointer;transition:all .18s;margin-bottom:4px;border:1px solid transparent;}
+.doc-item:hover{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.06);}
+.doc-item.active{background:rgba(37,99,235,0.12);border-color:rgba(37,99,235,0.25);}
+.doc-item-title{font-size:13px;font-weight:500;color:var(--white);margin-bottom:2px;}
+.doc-item-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);}
+.doc-item-status{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.status-dot{width:6px;height:6px;border-radius:50%;}
+
+/* Main editor */
+.editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Doc header */
+.doc-header{padding:16px 24px 0;border-bottom:1px solid var(--navy-border);flex-shrink:0;}
+.doc-meta-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.doc-meta-input{background:rgba(255,255,255,0.05);border:1px solid var(--navy-border);border-radius:8px;padding:7px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.doc-meta-input:focus{border-color:rgba(37,99,235,0.4);}
+.doc-meta-input.title-input{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;flex:1;min-width:200px;}
+.doc-meta-input.id-input{font-family:'DM Mono',monospace;font-size:12px;width:160px;}
+.doc-meta-input.process-input{font-family:'DM Mono',monospace;font-size:12px;width:160px;}
+
+/* Section tabs */
+.section-tabs{display:flex;gap:2px;padding:0 24px;}
+.section-tab{padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;border:1px solid transparent;border-bottom:none;display:flex;align-items:center;gap:6px;color:var(--slate);}
+.section-tab:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+.section-tab.active{color:var(--white);background:var(--navy-card);border-color:var(--navy-border);}
+.intent-badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;}
+
+/* Section editor */
+.section-body{flex:1;overflow-y:auto;padding:20px 24px;}
+.section-body::-webkit-scrollbar{width:4px;}
+.section-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+.section-panel{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.field-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;margin-bottom:14px;}
+.field-input:focus{border-color:rgba(37,99,235,0.4);}
+.field-textarea{resize:vertical;min-height:120px;line-height:1.6;}
+.field-textarea.content-area{min-height:280px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.intent-select{appearance:none;cursor:pointer;}
+
+/* Metadata panel */
+.meta-panel{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:12px;padding:16px;margin-bottom:16px;}
+.meta-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.tags-input-wrap{display:flex;flex-wrap:wrap;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;min-height:44px;cursor:text;}
+.tag{display:flex;align-items:center;gap:4px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.25);border-radius:20px;padding:3px 8px 3px 10px;font-size:11px;color:var(--teal);font-family:'DM Mono',monospace;}
+.tag-remove{background:none;border:none;color:var(--slate);cursor:pointer;font-size:13px;line-height:1;padding:0;}
+.tag-remove:hover{color:var(--red);}
+.tags-input{background:none;border:none;outline:none;color:var(--white);font-size:12px;font-family:'DM Mono',monospace;min-width:100px;flex:1;}
+
+/* Bottom action bar */
+.action-bar{padding:14px 24px;border-top:1px solid var(--navy-border);background:rgba(15,30,53,0.8);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.action-bar-left{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--slate);}
+.save-btn{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:11px 24px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,0.3);}
+.save-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,0.4);}
+.export-btn{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 18px;color:var(--slate-light);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;}
+.export-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
+.save-status{font-family:'DM Mono',monospace;font-size:11px;transition:all .3s;}
+.save-status.saved{color:var(--green);}
+.save-status.unsaved{color:var(--gold);}
+
+/* Empty state */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:40px;}
+.empty-icon{width:64px;height:64px;background:linear-gradient(135deg,rgba(37,99,235,0.15),rgba(14,165,233,0.15));border:1px solid rgba(37,99,235,0.2);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.empty-state p{font-size:13px;color:var(--slate);max-width:300px;line-height:1.7;}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
+.modal{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
+.modal h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--slate);margin-bottom:20px;line-height:1.6;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+.modal-cancel{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 18px;color:var(--slate);font-size:13px;cursor:pointer;}
+.modal-confirm{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:9px;padding:9px 20px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* JSON preview */
+.json-modal{max-width:680px;max-height:80vh;display:flex;flex-direction:column;}
+.json-preview{flex:1;overflow-y:auto;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;color:rgba(228,230,234,0.9);white-space:pre-wrap;margin-bottom:16px;max-height:55vh;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">OK</div>
+    <div>
+      <div class="topbar-title">Knowledge Base Editor</div>
+      <div class="topbar-sub">Operational Knowledge Architecture · Neela Thiagarajan</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-green" id="docCount">0 docs</span>
+    <span class="pill pill-blue" id="chunkCount">0 chunks</span>
+  </div>
+</div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-label">How-To Docs</div>
+      <button class="add-btn" onclick="newDoc()">
+        <span style="font-size:16px">+</span> New How-To
+      </button>
+    </div>
+    <div class="doc-list" id="docList"></div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-wrap" id="editorWrap">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">📋</div>
+      <h3>No doc selected</h3>
+      <p>Select an existing How-To from the sidebar or create a new one to start editing.</p>
+    </div>
+  </div>
+</div>
+
+<!-- New doc modal -->
+<div class="modal-overlay" id="newDocModal" style="display:none">
+  <div class="modal">
+    <h3>New How-To Document</h3>
+    <p>Create a new How-To that will be added to the knowledge corpus automatically.</p>
+    <div style="margin-bottom:12px">
+      <div class="field-label">Document title</div>
+      <input class="field-input" id="newDocTitle" placeholder="e.g. How to Create a Standard Work Order" style="margin-bottom:0"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="field-label">Doc ID</div>
+      <input class="field-input" id="newDocId" placeholder="e.g. MAINT-SWO-001" style="margin-bottom:0;font-family:'DM Mono',monospace;font-size:12px"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="field-label">Process code</div>
+      <input class="field-input" id="newDocProcess" placeholder="e.g. SWO" style="margin-bottom:0;font-family:'DM Mono',monospace;font-size:12px"/>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('newDocModal')">Cancel</button>
+      <button class="modal-confirm" onclick="createDoc()">Create →</button>
+    </div>
+  </div>
+</div>
+
+<!-- JSON export modal -->
+<div class="modal-overlay" id="jsonModal" style="display:none">
+  <div class="modal json-modal">
+    <h3>Export JSON</h3>
+    <p>Copy this JSON and save it to your knowledge_base folder. The pipeline and agent will pick it up automatically.</p>
+    <div class="json-preview" id="jsonPreview"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('jsonModal')">Close</button>
+      <button class="modal-confirm" onclick="copyJSON()">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────
+const SECTIONS = ['overview','prerequisites','steps','rules','troubleshoot','glossary'];
+const SECTION_LABELS = {
+  overview:'Overview', prerequisites:'Prerequisites', steps:'Steps',
+  rules:'Rules', troubleshoot:'Troubleshoot', glossary:'Glossary'
+};
+const SECTION_INTENTS = {
+  overview:'LEARN', prerequisites:'CHECK', steps:'DO',
+  rules:'CONSTRAINT', troubleshoot:'FIX', glossary:'LEARN'
+};
+const INTENT_COLORS = {
+  DO:'#10b981', FIX:'#f87171', CHECK:'#3b82f6', CONSTRAINT:'#f59e0b', LEARN:'#a78bfa'
+};
+const INTENT_CLASS = {DO:'do',FIX:'fix',CHECK:'chk',CONSTRAINT:'con',LEARN:'lrn'};
+
+// ── State ─────────────────────────────────────────────────────────────────
+let docs = {};
+let activeDocId = null;
+let activeSection = 'overview';
+let unsaved = false;
+
+// ── Load from localStorage ────────────────────────────────────────────────
+function loadDocs(){
+  try {
+    const stored = localStorage.getItem('ok_editor_docs');
+    if(stored) docs = JSON.parse(stored);
+  } catch(e){ docs = {}; }
+
+  // Seed Task Plan if empty
+  if(Object.keys(docs).length === 0){
+    docs['MAINT-TP-001'] = getTaskPlanSeed();
+  }
+  renderSidebar();
+  updateCounts();
+}
+
+function saveDocs(){
+  localStorage.setItem('ok_editor_docs', JSON.stringify(docs));
+  unsaved = false;
+  updateSaveStatus(true);
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function renderSidebar(){
+  const list = document.getElementById('docList');
+  list.innerHTML = '';
+  Object.values(docs).forEach(doc => {
+    const div = document.createElement('div');
+    div.className = 'doc-item' + (doc.doc_id === activeDocId ? ' active' : '');
+    div.onclick = () => openDoc(doc.doc_id);
+    const sectionCount = Object.keys(doc.sections || {}).length;
+    div.innerHTML = `
+      <div class="doc-item-title">${doc.title || 'Untitled'}</div>
+      <div class="doc-item-id">${doc.doc_id}</div>
+      <div class="doc-item-status">
+        <div class="status-dot" style="background:${sectionCount===6?'#10b981':'#f59e0b'}"></div>
+        <span style="font-size:10px;color:var(--slate)">${sectionCount}/6 sections · ${doc.process}</span>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function updateCounts(){
+  const docCount = Object.keys(docs).length;
+  const chunkCount = Object.values(docs).reduce((sum, d) => sum + Object.keys(d.sections||{}).length, 0);
+  document.getElementById('docCount').textContent = `${docCount} doc${docCount!==1?'s':''}`;
+  document.getElementById('chunkCount').textContent = `${chunkCount} chunks`;
+}
+
+// ── Open / render doc ─────────────────────────────────────────────────────
+function openDoc(docId){
+  activeDocId = docId;
+  activeSection = 'overview';
+  renderSidebar();
+  renderEditor();
+}
+
+function renderEditor(){
+  const doc = docs[activeDocId];
+  if(!doc){ return; }
+
+  const wrap = document.getElementById('editorWrap');
+  wrap.innerHTML = `
+    <div class="doc-header">
+      <div class="doc-meta-row">
+        <input class="doc-meta-input title-input" id="docTitle" value="${esc(doc.title)}" placeholder="How-To title" oninput="fieldChange()"/>
+        <input class="doc-meta-input id-input" id="docId" value="${esc(doc.doc_id)}" placeholder="Doc ID" oninput="fieldChange()"/>
+        <input class="doc-meta-input process-input" id="docProcess" value="${esc(doc.process)}" placeholder="Process code" oninput="fieldChange()"/>
+      </div>
+      <div class="section-tabs" id="sectionTabs"></div>
+    </div>
+    <div class="section-body" id="sectionBody"></div>
+    <div class="action-bar">
+      <div class="action-bar-left">
+        <span class="save-status" id="saveStatus">All saved</span>
+        <span style="color:rgba(255,255,255,0.15)">·</span>
+        <span>${Object.keys(doc.sections||{}).length}/6 sections complete</span>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="export-btn" onclick="showJSON()">Export JSON</button>
+        <button class="export-btn" onclick="deleteDoc()" style="color:#f87171;border-color:rgba(248,113,113,0.2)">Delete</button>
+        <button class="save-btn" onclick="saveCurrentDoc()">Save & Update Corpus</button>
+      </div>
+    </div>`;
+
+  renderTabs();
+  renderSection();
+}
+
+function renderTabs(){
+  const tabs = document.getElementById('sectionTabs');
+  tabs.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const doc = docs[activeDocId];
+    const hasContent = doc.sections?.[sec]?.content?.trim().length > 0;
+    const intent = SECTION_INTENTS[sec];
+    const color = INTENT_COLORS[intent];
+    const btn = document.createElement('button');
+    btn.className = 'section-tab' + (sec === activeSection ? ' active' : '');
+    btn.innerHTML = `
+      <span class="intent-badge" style="background:${color}22;color:${color}">${intent}</span>
+      ${SECTION_LABELS[sec]}
+      ${hasContent ? '<span style="color:#10b981;font-size:14px">·</span>' : ''}`;
+    btn.onclick = () => { activeSection = sec; renderTabs(); renderSection(); };
+    tabs.appendChild(btn);
+  });
+}
+
+function renderSection(){
+  const body = document.getElementById('sectionBody');
+  const doc = docs[activeDocId];
+  const sec = doc.sections?.[activeSection] || {};
+  const intent = SECTION_INTENTS[activeSection];
+  const color = INTENT_COLORS[intent];
+
+  body.innerHTML = `
+    <!-- Content -->
+    <div class="section-panel">
+      <div class="field-label" style="color:${color}">
+        <span class="intent-badge" style="background:${color}22;color:${color}">${intent}</span>
+        ${SECTION_LABELS[activeSection]} Content
+      </div>
+      <textarea class="field-input field-textarea content-area" id="secContent" oninput="fieldChange()" placeholder="Write the ${SECTION_LABELS[activeSection].toLowerCase()} content here...">${esc(sec.content||'')}</textarea>
+    </div>
+
+    <!-- Metadata -->
+    <div class="meta-panel">
+      <div class="meta-panel-title">📊 5-Map Metadata</div>
+      <div class="field-row">
+        <div>
+          <div class="field-label">Map 1 — Business Capability</div>
+          <input class="field-input" id="secCap" value="${esc(sec.business_capability||'')}" placeholder="e.g. Maintenance Execution" oninput="fieldChange()"/>
+        </div>
+        <div>
+          <div class="field-label">Map 2 — Process Stage</div>
+          <input class="field-input" id="secStage" value="${esc(sec.process_stage||'')}" placeholder="e.g. Task Plan Creation → Link to SWO" oninput="fieldChange()"/>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Business Outcome</div>
+        <input class="field-input" id="secOutcome" value="${esc(sec.business_outcome||'')}" placeholder="What does the business get from this?" oninput="fieldChange()"/>
+      </div>
+      <div>
+        <div class="field-label">Map 4 — Data Triggers</div>
+        <input class="field-input" id="secTriggers" value="${esc(sec.data_triggers||'')}" placeholder="What causes state changes described here?" oninput="fieldChange()"/>
+      </div>
+    </div>
+
+    <!-- Keywords -->
+    <div class="meta-panel">
+      <div class="meta-panel-title">🔍 Retrieval Keywords</div>
+      <div class="field-label">Keywords — press Enter to add</div>
+      <div class="tags-input-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+        ${(sec.keywords||[]).map(k=>`<span class="tag">${esc(k)}<button class="tag-remove" onclick="removeTag('${esc(k)}')">&times;</button></span>`).join('')}
+        <input class="tags-input" id="tagInput" placeholder="Add keyword..." onkeydown="handleTagKey(event)"/>
+      </div>
+    </div>`;
+}
+
+// ── Field changes ─────────────────────────────────────────────────────────
+function fieldChange(){
+  unsaved = true;
+  updateSaveStatus(false);
+}
+
+function updateSaveStatus(saved){
+  const el = document.getElementById('saveStatus');
+  if(!el) return;
+  el.textContent = saved ? '✓ All saved' : '● Unsaved changes';
+  el.className = 'save-status ' + (saved ? 'saved' : 'unsaved');
+}
+
+// ── Tags ──────────────────────────────────────────────────────────────────
+function handleTagKey(e){
+  if(e.key === 'Enter' || e.key === ','){
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/,'');
+    if(!val) return;
+    const doc = docs[activeDocId];
+    if(!doc.sections[activeSection]) doc.sections[activeSection] = {};
+    if(!doc.sections[activeSection].keywords) doc.sections[activeSection].keywords = [];
+    if(!doc.sections[activeSection].keywords.includes(val)){
+      doc.sections[activeSection].keywords.push(val);
+    }
+    e.target.value = '';
+    fieldChange();
+    renderSection();
+    document.getElementById('tagInput').focus();
+  }
+}
+
+function removeTag(tag){
+  const doc = docs[activeDocId];
+  if(doc.sections?.[activeSection]?.keywords){
+    doc.sections[activeSection].keywords = doc.sections[activeSection].keywords.filter(k=>k!==tag);
+  }
+  fieldChange();
+  renderSection();
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────
+function saveCurrentDoc(){
+  const doc = docs[activeDocId];
+  if(!doc) return;
+
+  // Update top-level fields
+  doc.title   = document.getElementById('docTitle')?.value || doc.title;
+  doc.doc_id  = document.getElementById('docId')?.value   || doc.doc_id;
+  doc.process = document.getElementById('docProcess')?.value || doc.process;
+  doc.last_updated = new Date().toISOString().split('T')[0];
+
+  // Update current section
+  if(!doc.sections) doc.sections = {};
+  if(!doc.sections[activeSection]) doc.sections[activeSection] = {};
+  const sec = doc.sections[activeSection];
+  sec.content          = document.getElementById('secContent')?.value || '';
+  sec.business_capability = document.getElementById('secCap')?.value || '';
+  sec.process_stage    = document.getElementById('secStage')?.value || '';
+  sec.business_outcome = document.getElementById('secOutcome')?.value || '';
+  sec.data_triggers    = document.getElementById('secTriggers')?.value || '';
+  sec.intent           = SECTION_INTENTS[activeSection];
+  sec.audience         = 'planner';
+  if(!sec.keywords) sec.keywords = [];
+
+  // Update doc_id key if changed
+  const newId = doc.doc_id;
+  if(newId !== activeDocId){
+    docs[newId] = doc;
+    delete docs[activeDocId];
+    activeDocId = newId;
+  }
+
+  saveDocs();
+  renderSidebar();
+  renderTabs();
+  updateCounts();
+
+  // Flash confirmation
+  const btn = document.querySelector('.save-btn');
+  if(btn){ btn.textContent = '✓ Saved!'; setTimeout(()=>btn.textContent='Save & Update Corpus',1800); }
+}
+
+// ── New doc ───────────────────────────────────────────────────────────────
+function newDoc(){ document.getElementById('newDocModal').style.display='flex'; }
+
+function createDoc(){
+  const title   = document.getElementById('newDocTitle').value.trim();
+  const docId   = document.getElementById('newDocId').value.trim();
+  const process = document.getElementById('newDocProcess').value.trim().toUpperCase();
+  if(!title || !docId || !process){ alert('Please fill in all fields'); return; }
+  if(docs[docId]){ alert('A document with this ID already exists'); return; }
+
+  docs[docId] = {
+    doc_id: docId, title, process,
+    process_keywords: [process.toLowerCase()],
+    hierarchy:{ l1:'', l2:'', l3:'', l4:'', l5:'' },
+    systems:[], related_processes:[], data_entities:[],
+    source:'', version:'1.0', author:'Neela Thiagarajan',
+    last_updated: new Date().toISOString().split('T')[0],
+    sections:{}
+  };
+
+  closeModal('newDocModal');
+  document.getElementById('newDocTitle').value = '';
+  document.getElementById('newDocId').value = '';
+  document.getElementById('newDocProcess').value = '';
+
+  saveDocs();
+  renderSidebar();
+  updateCounts();
+  openDoc(docId);
+}
+
+// ── Delete doc ────────────────────────────────────────────────────────────
+function deleteDoc(){
+  if(!confirm(`Delete "${docs[activeDocId]?.title}"? This cannot be undone.`)) return;
+  delete docs[activeDocId];
+  activeDocId = null;
+  saveDocs();
+  renderSidebar();
+  updateCounts();
+  document.getElementById('editorWrap').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No doc selected</h3>
+      <p>Select an existing How-To from the sidebar or create a new one.</p>
+    </div>`;
+}
+
+// ── Export JSON ───────────────────────────────────────────────────────────
+function showJSON(){
+  // Save first
+  saveCurrentDoc();
+  const doc = docs[activeDocId];
+  document.getElementById('jsonPreview').textContent = JSON.stringify(doc, null, 2);
+  document.getElementById('jsonModal').style.display = 'flex';
+}
+
+function copyJSON(){
+  const text = document.getElementById('jsonPreview').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('#jsonModal .modal-confirm');
+    btn.textContent = '✓ Copied!';
+    setTimeout(()=>btn.textContent='Copy to clipboard', 1800);
+  });
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────
+function closeModal(id){ document.getElementById(id).style.display='none'; }
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function esc(s){ return (s||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+// ── Task Plan seed data ───────────────────────────────────────────────────
+function getTaskPlanSeed(){
+  return {
+    doc_id:"MAINT-TP-001",
+    title:"How to Create a Task Plan",
+    process:"TASK-PLAN",
+    process_keywords:["task plan","task plans","job plan","checklist","billing relief","sequence 10","active checklist","required entry","follow-up task plan","copy to work order","nonconformity"],
+    hierarchy:{l1:"Maintain Railcar Assets",l2:"Plan Asset Maintenance",l3:"Manage Condition Based Maintenance",l4:"Work Order Management",l5:"Manage Task Plan"},
+    systems:["EAM system","Mobile field app","Billing system"],
+    related_processes:["WGC campaign","PMC campaign","Standard Work Order"],
+    data_entities:["Task Plan","Work Order","Checklist Item","Billing Relief Code","Document Reference"],
+    source:"System validation testing — March 2026",
+    version:"1.0",
+    author:"Neela Thiagarajan",
+    last_updated:"2026-03-29",
+    sections:{
+      overview:{
+        intent:"LEARN",audience:"all",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Planners understand what a Task Plan is, when to use it, and why it must exist before any campaign or work order",
+        process_stage:"Pre-Campaign Setup → Task Plan Creation",
+        data_triggers:"Task Plan must exist before Standard Work Order can link to it",
+        keywords:["task plan","job plan","reusable","work order template","WGC","PMC"],
+        content:"A Task Plan in the EAM system defines HOW maintenance work is performed. It replaces the legacy Job Plan and serves as the foundational work template for generating work orders.\n\nA Task Plan specifies the standard, repeatable instructions that appear on every work order:\n- Checklist items (inspection steps or measurement points)\n- Billing relief codes (valid completion outcomes for automated work order closure)\n- Reference documents (linked by name/code to content on handheld devices)\n- Follow-up rules (conditions that trigger additional work orders)\n\nTask Plans are REUSABLE. One Task Plan can be referenced by multiple Standard Work Orders and PM Schedules. Used by both WGC (Corrective Maintenance) and PMC (Preventive Maintenance) campaigns."
+      },
+      prerequisites:{
+        intent:"CHECK",audience:"planner",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Task Plan creation succeeds on first attempt — no rework from missing Engineering inputs",
+        process_stage:"Pre-Task Plan Creation",
+        data_triggers:"Document names must match exactly what exists on handheld devices",
+        keywords:["prerequisites","before you start","billing codes","document name","Engineering","permissions"],
+        content:"Before creating a Task Plan you must have:\n\n1. Access to the EAM system with Task Plan creation permissions\n2. Work instructions and checklist items from Engineering\n3. Billing relief codes from Engineering — at least two reference numbers (entered manually in current phase)\n4. Document name/code from Engineering — must match EXACTLY what exists on handheld devices\n5. Sub Work Type value if required — confirm with Process SME (leave blank until confirmed)\n6. Next available Task Plan number — check list view first, numbers are sequential"
+      },
+      steps:{
+        intent:"DO",audience:"planner",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Task Plan created with all required components — ready to be linked by Standard Work Orders and PM Schedules",
+        process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",
+        data_triggers:"Work Order Type = Campaign must be set before Save · Active Checklist must remain unchecked · Required Entry must be Warning · Follow-up Task Plan on Sequence 10 only",
+        keywords:["create","navigate","checklist","billing","document","save","sequence","Work Order Type","Campaign"],
+        content:"Steps to Create a Task Plan:\n\nSTEP 1 — Header: Work > Work Order Planning > Task Plans > New Record. Enter number (sequential), description, Work Order Type = Campaign (CRITICAL).\n\nSTEP 2 — Billing tab: add 2+ billing relief codes from Engineering (enter manually).\n\nSTEP 3 — Checklist tab: add items seq 10, 20, 30. For wear chart: Enable Nonconformities, type = Measurement. Follow-up on Seq 10 ONLY. Do NOT check Active Checklist. Required Entry = Warning.\n\nSTEP 4 — More tab > Documents: enter document name/code from Engineering. Check Copy to Work Order on PRIMARY only.\n\nSTEP 5 — Save. Verify: Task Plan visible in list, all tabs populated."
+      },
+      rules:{
+        intent:"CONSTRAINT",audience:"planner",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Task Plan errors prevented at creation time — no rework from incorrect configuration",
+        process_stage:"Task Plan Creation → Link to Standard Work Order or PM Schedule",
+        data_triggers:"Work Order Type = Campaign required for lookup · Active Checklist controls display · Required Entry = Yes blocks closure",
+        keywords:["rules","critical","must","Active Checklist","Required Entry","Sequence 10","Work Order Type"],
+        content:"Critical Rules — Task Plan:\n\nWORK ORDER TYPE MUST BE CAMPAIGN — or Task Plan won't appear in SWO Activities lookup.\n\nDO NOT CHECK ACTIVE CHECKLIST — checklist items will NOT appear on work orders if checked.\n\nREQUIRED ENTRY = WARNING NOT YES — if Yes, billing system blocks work order closure.\n\nFOLLOW-UP TASK PLAN ON SEQUENCE 10 ONLY — Sequence 20 follow-up field is not honored.\n\nSEQUENCE NUMBERS IN INCREMENTS OF 10 — allows future insertions without renumbering.\n\nONE DOCUMENT WITH COPY TO WORK ORDER — multiple causes unpredictable behavior.\n\nDOCUMENTS ARE REFERENCES NOT UPLOADS — file lives on handheld devices.\n\nDO NOT DUPLICATE TASK PLANS — check if suitable Task Plan already exists."
+      },
+      troubleshoot:{
+        intent:"FIX",audience:"planner",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Task Plan configuration errors resolved without work order regeneration",
+        process_stage:"Task Plan Creation → Work Order Generation → Field Execution",
+        data_triggers:"Active Checklist controls display · Required Entry = Yes blocks closure · Follow-up on Seq 10 triggers follow-up WO",
+        keywords:["not visible","checklist missing","not closing","follow-up not created","document missing"],
+        content:"Task Plan Troubleshooting:\n\nProblem: Task Plan not visible in SWO Activities lookup\nCause: Work Order Type not set to Campaign.\nFix: Verify Work Order Type = Campaign. Search by partial number. Confirm correct organization.\n\nProblem: Checklist items missing from work orders\nCause: Active Checklist checkbox is checked.\nFix: Open Task Plan — confirm Active Checklist is NOT checked.\n\nProblem: Work orders not closing automatically\nCause: Required Entry is set to Yes.\nFix: Open Task Plan > Checklist — change Required Entry to Warning on all items.\n\nProblem: Follow-up work order not created\nCause: Follow-up Task Plan linked on Sequence 20 not Sequence 10.\nFix: Move follow-up link to Sequence 10.\n\nProblem: Document missing from handheld\nCause: Copy to Work Order not checked or name mismatch.\nFix: Confirm Copy to Work Order on primary document. Verify name matches Engineering confirmation."
+      },
+      glossary:{
+        intent:"LEARN",audience:"all",
+        business_capability:"Maintenance Execution",
+        business_outcome:"Users understand key Task Plan terms before creating or troubleshooting",
+        process_stage:"All Task Plan stages",
+        data_triggers:"Term definitions — reference only, no system actions triggered",
+        keywords:["definition","billing relief code","Active Checklist","Required Entry","nonconformity","follow-up","Copy to Work Order"],
+        content:"Task Plan Glossary:\n\nTask Plan: Work instruction template replacing legacy Job Plan. Reusable across work orders and campaigns.\n\nBilling Relief Code: Code that auto-closes work order when submitted by field technician.\n\nActive Checklist: If checked, checklist items DO NOT appear on work orders. Must stay unchecked.\n\nRequired Entry: Must be Warning not Yes. If Yes, automated work order closure is blocked.\n\nFollow-up Task Plan: Linked on Sequence 10 only. Triggers creation of additional work order.\n\nCopy to Work Order: Designates primary document for mobile field application. One document only.\n\nDocument Reference: Link to name/code on handheld. EAM stores reference only — file on handheld.\n\nNonconformity: Mechanism for measurement-based checklist items. Captures recorded values for threshold evaluation."
+      }
+    }
+  };
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadDocs();
+if(Object.keys(docs).length > 0){
+  openDoc(Object.keys(docs)[0]);
+}
+</script>
+</body>
+</html>
