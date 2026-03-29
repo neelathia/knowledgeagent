@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operational Knowledge Agent — Task Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2e;
+    --navy-mid: #142035;
+    --navy-card: #19293f;
+    --navy-border: rgba(255,255,255,0.07);
+    --blue: #2563eb;
+    --blue-glow: rgba(37,99,235,0.25);
+    --teal: #0ea5e9;
+    --gold: #f59e0b;
+    --white: #f1f5f9;
+    --slate: #94a3b8;
+    --slate-light: #cbd5e1;
+    --green: #10b981;
+    --red: #f87171;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Subtle grid */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(37,99,235,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,99,235,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ── API Key Screen ───────────────────────────────────────────── */
+  #apiScreen {
+    position: fixed;
+    inset: 0;
+    background: var(--navy);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .api-card {
+    background: var(--navy-card);
+    border: 1px solid var(--navy-border);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+  }
+
+  .api-card .logo {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: white;
+    margin-bottom: 24px;
+    box-shadow: 0 0 30px var(--blue-glow);
+  }
+
+  .api-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .api-card p {
+    font-size: 13.5px;
+    color: var(--slate);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .api-card p a {
+    color: var(--teal);
+    text-decoration: none;
+  }
+
+  .api-input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .api-input-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-input-row input:focus {
+    border-color: rgba(37,99,235,0.5);
+  }
+
+  .api-input-row input::placeholder { color: var(--slate); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px var(--blue-glow);
+  }
+
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px var(--blue-glow); }
+
+  .api-note {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: var(--slate);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* ── Main App ─────────────────────────────────────────────────── */
+  #app { display: none; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
+
+  /* Header */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--navy-border);
+    background: rgba(13,27,46,0.8);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .topbar-logo {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: white;
+  }
+
+  .topbar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .topbar-sub {
+    font-size: 11px;
+    color: var(--slate);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .pill-green { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+  .pill-blue  { color: var(--teal);  border-color: rgba(14,165,233,0.3); background: rgba(14,165,233,0.08); }
+  .pill-gold  { color: var(--gold);  border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--slate);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+
+  /* Body layout */
+  .body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--navy-border);
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: rgba(13,27,46,0.5);
+  }
+
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .prompt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .prompt-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 11px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--slate-light);
+    line-height: 1.45;
+  }
+
+  .prompt-chip:hover {
+    background: rgba(37,99,235,0.1);
+    border-color: rgba(37,99,235,0.25);
+    color: var(--white);
+    transform: translateX(2px);
+  }
+
+  .itag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .itag-do   { background: rgba(16,185,129,0.15); color: var(--green); }
+  .itag-fix  { background: rgba(248,113,113,0.15); color: var(--red); }
+  .itag-chk  { background: rgba(14,165,233,0.15); color: var(--teal); }
+  .itag-lrn  { background: rgba(167,139,250,0.15); color: var(--purple); }
+  .itag-con  { background: rgba(245,158,11,0.15); color: var(--gold); }
+
+  /* Routing panel */
+  .route-panel {
+    background: rgba(37,99,235,0.06);
+    border: 1px solid rgba(37,99,235,0.15);
+    border-radius: 10px;
+    padding: 12px;
+    display: none;
+  }
+
+  .route-panel.show { display: block; }
+
+  .route-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    gap: 8px;
+  }
+
+  .route-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .rl { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--slate); flex-shrink: 0; }
+  .rv { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--white); text-align: right; }
+
+  .chunk-pill {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(14,165,233,0.12);
+    color: var(--teal);
+    margin: 1px 1px 0 0;
+  }
+
+  /* Chat */
+  .chat-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+  /* Empty state */
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    padding: 60px 40px;
+  }
+
+  .empty-orb {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(14,165,233,0.2));
+    border: 1px solid rgba(37,99,235,0.2);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+  }
+
+  .empty h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .empty p {
+    font-size: 13.5px;
+    color: var(--slate);
+    max-width: 340px;
+    line-height: 1.7;
+  }
+
+  .empty-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .empty-chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--slate-light);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .empty-chip:hover {
+    background: rgba(37,99,235,0.1);
+    border-color: rgba(37,99,235,0.3);
+    color: var(--white);
+  }
+
+  /* Messages */
+  .msg {
+    display: flex;
+    gap: 14px;
+    animation: fadein 0.25s ease;
+    max-width: 820px;
+  }
+
+  @keyframes fadein {
+    from { opacity:0; transform: translateY(6px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .msg-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg.user .msg-avatar { background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.3); }
+  .msg.bot  .msg-avatar { background: linear-gradient(135deg,rgba(37,99,235,0.25),rgba(14,165,233,0.25)); border: 1px solid rgba(14,165,233,0.25); }
+
+  .msg-body { flex: 1; }
+
+  .msg-who {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .msg.user .msg-who { color: var(--blue-bright, #3b82f6); }
+  .msg.bot  .msg-who { color: var(--teal); }
+
+  .msg-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--slate-light);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .msg.user .msg-text { color: var(--white); font-size: 14.5px; }
+
+  /* Typing indicator */
+  .typing .msg-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--slate);
+    font-size: 13px;
+  }
+
+  .dots { display: flex; gap: 4px; }
+  .dots span {
+    width: 7px; height: 7px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: bop 1.2s infinite;
+    opacity: 0.6;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bop {
+    0%,60%,100% { transform: translateY(0); opacity:0.4; }
+    30% { transform: translateY(-7px); opacity:1; }
+  }
+
+  /* Input bar */
+  .input-bar {
+    border-top: 1px solid var(--navy-border);
+    padding: 16px 24px;
+    background: rgba(13,27,46,0.7);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .input-inner {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 820px;
+  }
+
+  textarea#qInput {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.5;
+    min-height: 50px;
+    max-height: 140px;
+  }
+
+  textarea#qInput::placeholder { color: var(--slate); }
+  textarea#qInput:focus {
+    border-color: rgba(37,99,235,0.45);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .send {
+    width: 50px; height: 50px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px var(--blue-glow);
+  }
+
+  .send:hover { transform: translateY(-1px); box-shadow: 0 6px 22px var(--blue-glow); }
+  .send:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .send svg { width: 20px; height: 20px; fill: white; }
+
+  .input-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--slate);
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- API Key Screen -->
+<div id="apiScreen">
+  <div class="api-card">
+    <div class="logo">OK</div>
+    <h2>Operational Knowledge Agent</h2>
+    <p>This agent answers questions about Task Plans in an Enterprise Asset Management system using a metadata-driven RAG pipeline built on structured operational knowledge.<br><br>
+    Enter your Anthropic API key to start. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> — it takes 2 minutes.</p>
+    <div class="api-input-row">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." onkeydown="if(event.key==='Enter') startApp()" />
+      <button class="btn-primary" onclick="startApp()">Start →</button>
+    </div>
+    <div class="api-note">🔒 Your key is stored only in this browser session and never sent anywhere except directly to Anthropic's API.</div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">OK</div>
+      <div>
+        <div class="topbar-title">Operational Knowledge Agent</div>
+        <div class="topbar-sub">MAINT-TP-001 · Task Plan · Enterprise Asset Management</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill pill-green">● Live</span>
+      <span class="pill pill-blue">6 Chunks · 5-Map RAG</span>
+      <span class="pill pill-gold">Neela Thiagarajan</span>
+      <button class="reset-btn" onclick="resetChat()">New Chat</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <div>
+        <div class="section-label">From Validation Testing</div>
+        <div class="prompt-list">
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Is it actually a task plan or is it just activities?">
+            <span class="itag itag-lrn">LEARN</span>Is it a task plan or just activities?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Where is the list of billing relief codes coming from?">
+            <span class="itag itag-chk">CHECK</span>Where do billing relief codes come from?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="The document list for the mobile field application is going to be based off of the task plan, correct?">
+            <span class="itag itag-chk">CHECK</span>Is the the mobile field application document list based on the task plan?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Which task plan has the follow-up configured right now?">
+            <span class="itag itag-chk">CHECK</span>Which task plan has the follow-up configured?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Is the Sub Work Type field required on the task plan or is it optional?">
+            <span class="itag itag-chk">CHECK</span>Is Sub Work Type required on the task plan?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Would putting content on the task plan carry over to the work order record view?">
+            <span class="itag itag-lrn">LEARN</span>Does task plan content carry over to work order view?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Is the task plan on this list somewhere? How do I find it?">
+            <span class="itag itag-do">DO</span>How do I find a task plan in the list?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Should we have to create a task plan before creating a standard work order?">
+            <span class="itag itag-chk">CHECK</span>Must task plan exist before standard work order?
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Try These</div>
+        <div class="prompt-list">
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="How do I create a Task Plan in the EAM system?">
+            <span class="itag itag-do">DO</span>How do I create a Task Plan?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Checklist items are not appearing on my work orders">
+            <span class="itag itag-fix">FIX</span>Checklist items not appearing on work orders
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="Work orders are not closing automatically after field submission">
+            <span class="itag itag-fix">FIX</span>Work orders not closing automatically
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="What are the critical rules I must know about Task Plans?">
+            <span class="itag itag-con">RULE</span>Critical rules for Task Plans
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="What do I need from Engineering before creating a Task Plan?">
+            <span class="itag itag-chk">CHECK</span>What do I need from Engineering first?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="What is the difference between a Task Plan and a Job Plan in the legacy system?">
+            <span class="itag itag-lrn">LEARN</span>Task Plan vs Job Plan — what's the difference?
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="The follow-up work order is not being created after the inspection">
+            <span class="itag itag-fix">FIX</span>Follow-up work order not created after inspection
+          </button>
+          <button class="prompt-chip" onclick="ask(this.dataset.q)" data-q="What is a billing relief code and how does it work?">
+            <span class="itag itag-lrn">LEARN</span>What is a billing relief code?
+          </button>
+        </div>
+      </div>
+
+      <!-- Routing panel -->
+      <div class="route-panel" id="routePanel">
+        <div class="section-label" style="margin-bottom:10px">Last Retrieval</div>
+        <div class="route-row">
+          <span class="rl">Process</span>
+          <span class="rv" id="rProcess">—</span>
+        </div>
+        <div class="route-row">
+          <span class="rl">Intent</span>
+          <span class="rv" id="rIntent">—</span>
+        </div>
+        <div class="route-row" style="flex-direction:column;gap:6px">
+          <span class="rl">Chunks Retrieved</span>
+          <div id="rChunks"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-wrap">
+      <div class="messages" id="messages">
+        <div class="empty" id="emptyState">
+          <div class="empty-orb">🚂</div>
+          <h3>Ask anything about Task Plans</h3>
+          <p>Powered by structured operational knowledge. The system routes by process and intent before retrieving the right content.</p>
+          <div class="empty-chips">
+            <span class="empty-chip" onclick="ask('How do I create a Task Plan?')">How do I create a Task Plan?</span>
+            <span class="empty-chip" onclick="ask('Checklist items missing from work orders')">Checklist items missing</span>
+            <span class="empty-chip" onclick="ask('What are the critical rules?')">Critical rules</span>
+            <span class="empty-chip" onclick="ask('What is a billing relief code?')">What is a billing relief code?</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <div class="input-inner">
+          <textarea id="qInput" placeholder="Ask anything about Task Plans in the EAM system..." rows="1"
+            onkeydown="handleKey(event)" oninput="grow(this)"></textarea>
+          <button class="send" id="sendBtn" onclick="sendMsg()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let API_KEY = '';
+let loading = false;
+let msgCount = 0;
+
+// ── Corpus ────────────────────────────────────────────────────────────────
+const CORPUS = [
+  { id:"TP-001-overview", section:"overview", intent:"LEARN",
+    kw:["task plan","job plan","legacy system","checklist","billing relief","reusable","work order template","activities"],
+    text:`A Task Plan in the EAM system defines HOW maintenance work is performed. It replaces the legacy system's Job Plans and is the foundational work template for generating work orders.
+
+A Task Plan specifies the standard, repeatable instructions on every work order:
+- Checklist items (inspection steps or measurement points)
+- Billing relief codes (valid completion outcomes for automated work order closure)
+- Reference documents (linked by name/code to content on handheld devices)
+- Follow-up rules (conditions that trigger additional work orders)
+- Labor estimates
+
+Task Plans are REUSABLE — one Task Plan can be referenced by multiple Standard Work Orders and PM Schedules. Used by both WGC (Corrective Maintenance) and PMC (Preventive Maintenance) campaigns.
+
+Navigation: Work > Work Order Planning > Task Plans`},
+
+  { id:"TP-001-prerequisites", section:"prerequisites", intent:"CHECK",
+    kw:["prerequisites","before you start","billing codes","document name","engineering","permissions","need","require"],
+    text:`Before creating a Task Plan you must have:
+
+1. Access to the EAM system with Task Plan creation permissions
+2. Work instructions and checklist items from Engineering — what technicians will inspect or perform, whether inspection-based or measurement-based
+3. Billing relief codes from Engineering — at least two reference numbers (entered manually in the current phase; auto-population not active as confirmed during system validation)
+4. Document name/code from Engineering — must match EXACTLY what exists on handheld devices. Engineering confirms document exists on handhelds before referencing.
+5. Sub Work Type value if required — confirm permissible values with the Process SME (pending as confirmed during system validation — leave blank until confirmed)
+6. Next available Task Plan number — check list view first, numbers are sequential`},
+
+  { id:"TP-001-steps", section:"steps", intent:"DO",
+    kw:["create","steps","navigate","how","setup","build","make","sequence","save","billing","checklist","document"],
+    text:`Steps to Create a Task Plan in the EAM system:
+
+STEP 1 — Header Details:
+1. Navigate: Work > Work Order Planning > Task Plans
+2. Click New Record icon
+3. Enter unique Task Plan number (check list view — numbers are sequential)
+4. Enter Description — clear and searchable name for the work activity
+5. Set Work Order Type = Campaign (CRITICAL — must be set before Save)
+6. Set System Level if applicable
+
+STEP 2 — Billing Relief Codes (Billing tab):
+1. Navigate to Billing tab
+2. Add at least two billing relief codes from Engineering — enter reference numbers manually
+
+STEP 3 — Checklist (Checklist tab):
+1. Navigate to Checklist tab
+2. Add items with sequence numbers 10, 20, 30 (increment by 10 to allow future insertions)
+3. Sequence 10 = inspection/primary action; Sequence 20 = measurement (wear chart)
+4. For wear chart: check Enable Nonconformities; set item type = Measurement
+5. Follow-up Task Plan: link on Sequence 10 ONLY (Sequence 20 follow-up field NOT honored)
+6. Do NOT check Active Checklist checkbox — checklist won't appear on work orders if checked
+7. Set Required Entry = Warning not Yes (if Yes, work orders cannot close automatically)
+
+STEP 4 — Documents (More tab > Documents):
+1. Navigate More tab > Documents
+2. Click Add Document — enter name/code exactly as Engineering provided
+3. Check Copy to Work Order on PRIMARY document only (one document only)
+4. Secondary documents: Add Document again, do NOT check Copy to Work Order
+
+STEP 5 — Save:
+Enter Sub Work Type if required and confirmed, then click Save
+
+VERIFY: Task Plan visible in list, all tabs populated (Checklist, Billing, Documents)`},
+
+  { id:"TP-001-rules", section:"rules", intent:"CONSTRAINT",
+    kw:["rule","critical","must","cannot","required","important","active checklist","required entry","sequence 10","follow-up","copy to work order","type"],
+    text:`Critical Rules — Task Plan:
+
+WORK ORDER TYPE MUST BE CAMPAIGN
+Must be set before Save. If wrong, Task Plan won't appear in Standard Work Order Activities tab lookup.
+
+DO NOT CHECK ACTIVE CHECKLIST
+If Active Checklist checkbox is checked, checklist items will NOT appear on generated work orders. Leave unchecked always.
+
+REQUIRED ENTRY = WARNING NOT YES
+If set to Yes on any checklist item, the mobile field application blocks work order closure. automated work order closure will fail. Set to Warning only.
+
+FOLLOW-UP TASK PLAN ON SEQUENCE 10 ONLY
+The follow-up Task Plan field on Sequence 20 is NOT honored by the system. Follow-up must be linked on Sequence 10.
+
+SEQUENCE NUMBERS IN INCREMENTS OF 10
+Use 10, 20, 30 not 1, 2, 3. Allows future insertions without renumbering.
+
+ONE DOCUMENT WITH COPY TO WORK ORDER CHECKED
+Multiple checked documents cause unpredictable behavior in the mobile field application on handhelds.
+
+DOCUMENTS ARE REFERENCES NOT UPLOADS
+the EAM system stores document name/code only. File lives on handheld devices. Name must match exactly.
+
+TASK PLANS ARE REUSABLE
+Check if a suitable Task Plan already exists. Do not create duplicates unnecessarily.`},
+
+  { id:"TP-001-troubleshoot", section:"troubleshoot", intent:"FIX",
+    kw:["not visible","not appearing","not closing","not created","not generating","missing","error","problem","fails","wrong","issue","troubleshoot"],
+    text:`Task Plan Troubleshooting:
+
+Problem: Task Plan not visible in Standard Work Order Activities tab lookup
+Cause: Work Order Type not set to Campaign, or searching wrong organization.
+Fix: Open Task Plan — verify Work Order Type = Campaign. Search by partial number (search is 'starts with'). Confirm you are in the correct organization.
+
+Problem: Checklist items not appearing on generated work orders
+Cause: Active Checklist checkbox is checked on the Task Plan.
+Fix: Open Task Plan — confirm Active Checklist is NOT checked. Also verify Task Plan is linked on the Standard Work Order Activities tab. Note: items added after work orders already generated appear on NEW work orders only.
+
+Problem: Work orders not closing automatically after field submission
+Cause: Required Entry is set to Yes on one or more checklist items.
+Fix: Open Task Plan > Checklist tab — change Required Entry from Yes to Warning on all items. Already-generated work orders may need manual review.
+
+Problem: Follow-up work order not created after inspection
+Cause: Follow-up Task Plan linked on Sequence 20 instead of Sequence 10.
+Fix: Open Task Plan > Checklist tab — select Sequence 10 and link follow-up Task Plan there. Sequence 20 follow-up field is not honored by system.
+
+Problem: Primary document missing from field user's work order on handheld
+Cause: Copy to Work Order not checked, or document name doesn't match handheld.
+Fix: Open Task Plan > More > Documents — confirm Copy to Work Order is checked on primary document only. Confirm document name matches exactly what Engineering confirmed exists on handhelds.`},
+
+  { id:"TP-001-glossary", section:"glossary", intent:"LEARN",
+    kw:["what is","definition","mean","glossary","terminology","billing relief code","active checklist","required entry","follow-up","copy to work order","document reference","mobile ubs","sequence","nonconformity"],
+    text:`Task Plan Glossary:
+
+Task Plan: Work instruction template replacing the legacy system's Job Plan. Defines checklist items, billing codes, and document references for all generated work orders. Reusable across multiple Standard Work Orders and PM Schedules.
+
+Job Plan (the legacy system): The predecessor to Task Plan in the EAM system — same function, different name.
+
+Checklist Item: A single step or inspection point on a Task Plan. Inspection-based (confirm a condition) or measurement-based (record a value). Appears on work orders and in the mobile field application.
+
+Billing Relief Code: Code defining a valid completion outcome. When technician enters matching code, system can auto-close the work order. Provided by Engineering, entered manually in the current phase.
+
+Active Checklist (checkbox): If checked, checklist items DO NOT appear on work orders. Must remain unchecked.
+
+Required Entry: Must be Warning not Yes. If Yes, automated work order closure is blocked and work orders cannot be closed by the mobile field application.
+
+Sequence Number: Order number for checklist items (10, 20, 30). Increments of 10 allow future insertions without renumbering.
+
+Follow-up Task Plan: Linked on Sequence 10 only. Triggers creation of an additional work order when the inspection result warrants it.
+
+Copy to Work Order: Checkbox designating the primary document for the mobile field application. Only one document per Task Plan should have this checked.
+
+Document Reference: A link to a document name/code that exists on handheld devices. the EAM system does not store the file itself.
+
+Nonconformity: Mechanism for measurement-based checklist items (wear chart). When Enable Nonconformities is checked and item type = Measurement, system captures the recorded value.
+
+the mobile field application: Handheld system field technicians use to execute work orders and capture checklist results.`}
+];
+
+// ── Routing ───────────────────────────────────────────────────────────────
+const INTENT_TRIGGERS = {
+  DO: ["how do i","how to","steps to","step by step","how do you","create","navigate","set up","setup","find","search for"],
+  FIX: ["not working","not appearing","not visible","not closing","not created","not generating","missing","error","fails","problem","issue","wrong","troubleshoot","doesn't","wont","won't","can't","cannot"],
+  CHECK: ["prerequisite","before","what do i need","need before","checklist","do i need","required before","confirm","verify","is it required","must i"],
+  CONSTRAINT: ["rule","critical","must","cannot","required","important","what happens if","mandatory"],
+  LEARN: ["what is","what are","explain","difference","overview","tell me","why","how does","what does","mean","definition","understand"],
+};
+
+function detectIntent(q) {
+  const ql = q.toLowerCase();
+  for (const [intent, triggers] of Object.entries(INTENT_TRIGGERS)) {
+    if (triggers.some(t => ql.includes(t))) return intent;
+  }
+  return null;
+}
+
+function retrieve(query, topK = 3) {
+  const ql = query.toLowerCase();
+  const intent = detectIntent(query);
+  const scored = CORPUS.map(chunk => {
+    let score = 0;
+    if (intent && chunk.intent === intent) score += 8;
+    chunk.kw.forEach(kw => { if (ql.includes(kw)) score += 3; });
+    const qw = new Set(ql.split(/\s+/));
+    const cw = new Set(chunk.text.toLowerCase().split(/\s+/));
+    score += [...qw].filter(w => cw.has(w) && w.length > 3).length;
+    return { score, chunk };
+  }).filter(s => s.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return { chunks: scored.slice(0, topK).map(s => s.chunk), intent };
+}
+
+// ── Response contracts ────────────────────────────────────────────────────
+const CONTRACTS = {
+  DO: "Respond with clear numbered steps only. Be concise and actionable. End with a verification step. Avoid narrative prose.",
+  FIX: "Respond using labeled sections: Problem / Cause / Fix for each issue. State the root cause explicitly before giving fix steps.",
+  CHECK: "Respond with a checkbox-style bullet checklist. Each item must be independently verifiable. Avoid mixing steps with prerequisites.",
+  CONSTRAINT: "Respond with a bullet list of rules. For each rule state clearly what happens if violated. Be direct and use bold or caps for critical rules.",
+  LEARN: "Respond in clear concise prose, 3-5 sentences max per concept. Focus on clarity. Avoid step-by-step format.",
+};
+
+// ── UI ────────────────────────────────────────────────────────────────────
+function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key || !key.startsWith('sk-')) {
+    alert('Please enter a valid Anthropic API key starting with sk-');
+    return;
+  }
+  API_KEY = key;
+  document.getElementById('apiScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+}
+
+function grow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function ask(text) {
+  document.getElementById('qInput').value = text;
+  grow(document.getElementById('qInput'));
+  sendMsg();
+}
+
+function removeEmpty() {
+  const e = document.getElementById('emptyState');
+  if (e) e.remove();
+}
+
+function addMsg(role, text, isTyping = false) {
+  removeEmpty();
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}${isTyping ? ' typing' : ''}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="msg-body">
+      <div class="msg-who">${role === 'user' ? 'You' : 'the EAM system Assistant'}</div>
+      <div class="msg-text">${isTyping
+        ? '<div class="dots"><span></span><span></span><span></span></div> Routing and retrieving...'
+        : htmlEsc(text)}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function htmlEsc(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showRoute(intent, chunks) {
+  const panel = document.getElementById('routePanel');
+  panel.classList.add('show');
+  document.getElementById('rProcess').textContent = 'TASK-PLAN';
+  document.getElementById('rIntent').textContent = intent || 'undetected';
+  document.getElementById('rChunks').innerHTML = chunks.map(c =>
+    `<span class="chunk-pill">${c.id}</span>`).join('');
+}
+
+function resetChat() {
+  const m = document.getElementById('messages');
+  m.innerHTML = `<div class="empty" id="emptyState">
+    <div class="empty-orb">🚂</div>
+    <h3>Ask anything about Task Plans</h3>
+    <p>Powered by structured operational knowledge. The system routes by process and intent before retrieving the right content.</p>
+    <div class="empty-chips">
+      <span class="empty-chip" onclick="ask('How do I create a Task Plan?')">How do I create a Task Plan?</span>
+      <span class="empty-chip" onclick="ask('Checklist items missing from work orders')">Checklist items missing</span>
+      <span class="empty-chip" onclick="ask('What are the critical rules?')">Critical rules</span>
+      <span class="empty-chip" onclick="ask('What is a billing relief code?')">What is a billing relief code?</span>
+    </div>
+  </div>`;
+  document.getElementById('routePanel').classList.remove('show');
+}
+
+async function sendMsg() {
+  const input = document.getElementById('qInput');
+  const query = input.value.trim();
+  if (!query || loading) return;
+
+  loading = true;
+  input.value = '';
+  grow(input);
+  document.getElementById('sendBtn').disabled = true;
+
+  addMsg('user', query);
+
+  const { chunks, intent } = retrieve(query);
+  showRoute(intent, chunks);
+
+  const typingEl = addMsg('bot', '', true);
+
+  const context = chunks.map(c =>
+    `[${c.id.toUpperCase()} | ${c.section.toUpperCase()} | ${c.intent}]\n${c.text}`
+  ).join('\n\n---\n\n');
+
+  const contract = intent ? (CONTRACTS[intent] || '') : '';
+  const system = `You are a precise operational knowledge assistant for an Enterprise Asset Management (EAM) system. Answer based ONLY on the provided context. Do not add information not present in the context. ${contract}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 700,
+        system,
+        messages: [{ role: 'user', content: `Context:\n${context}\n\nQuestion: ${query}` }]
+      })
+    });
+
+    const data = await res.json();
+    const answer = data.content?.[0]?.text || 'No response received. Please try again.';
+    typingEl.remove();
+    addMsg('bot', answer);
+    msgCount++;
+
+  } catch (err) {
+    typingEl.remove();
+    addMsg('bot', `⚠️ Could not reach the API. Check your key and internet connection.\n\nError: ${err.message}`);
+  }
+
+  loading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+</script>
+</body>
+</html>
