@@ -1,6 +1,7 @@
 {
   "docs": [
-    "task_plan.json"
+    "task_plan.json",
+    "swo.json"
   ],
   "last_updated": "2026-03-29",
   "author": "Neela Thiagarajan"
