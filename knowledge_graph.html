@@ -578,8 +578,11 @@ function highlightPath(ids, node, link, nodeMap, svg, zoom, W, H){
     return(set.has(s)&&set.has(t))?2.8:1.2;
   });
 
-  // Animate through the path sequentially
+  // Animate through path — end by opening panel on the chunk node
   let i=0;
+  const chunkNode = ids.map(id=>nodeMap[id]).find(d=>d&&d.cat==='chunk');
+  const totalDuration = ids.length * 650;
+
   const timer=setInterval(()=>{
     if(i>=ids.length){clearInterval(timer);return;}
     const d=nodeMap[ids[i]];
@@ -590,14 +593,26 @@ function highlightPath(ids, node, link, nodeMap, svg, zoom, W, H){
     i++;
   },650);
 
-  // Reset after 9 seconds
+  // After animation ends — open panel on the chunk node so user sees the content
   setTimeout(()=>{
-    clearInterval(timer);
-    node.selectAll('.node-circle').attr('opacity',0.82);
-    node.selectAll('.node-label').attr('opacity',1);
-    link.attr('opacity',1).style('stroke-width',null).style('stroke',null);
-    node.classed('selected',false);
-  },9000);
+    if(chunkNode){
+      node.classed('selected',n=>n.id===chunkNode.id);
+      zoomTo(chunkNode,svg,zoom,W,H);
+      openPanel(chunkNode,allLinks,nodeMap);
+      updateBC(chunkNode,nodeMap);
+      // Highlight chunk node connections
+      const color = nodeColor(chunkNode);
+      link
+        .style('stroke',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+          return(s===chunkNode.id||t===chunkNode.id)?color:(l.type==='cross'?'#1e2128':getCSS('--border'));})
+        .style('stroke-width',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+          return(s===chunkNode.id||t===chunkNode.id)?2.5:1.2;})
+        .attr('opacity',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;
+          return(s===chunkNode.id||t===chunkNode.id)?1:0.18;});
+      // Restore dim except chunk and connected
+      node.selectAll('.node-circle').attr('opacity',d=>d.id===chunkNode.id?1:0.25);
+    }
+  }, totalDuration + 200);
 }
 
 function showToast(title,body){
