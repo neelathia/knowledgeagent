@@ -559,14 +559,14 @@ function renderGraph(docs){
     const demo = demos.find(d=>d.value===val);
     if(!demo) return;
     showToast(demo.title, demo.body);
-    highlightPath(demo.path, node, link, nodeMap, svg, zoom, W, H);
+    highlightPath(demo.path, node, link, nodeMap, allLinks, svg, zoom, W, H);
   });
 
   document.getElementById('loading-overlay').style.display='none';
 }
 
 // ── Highlight path ────────────────────────────────────────────────────────
-function highlightPath(ids, node, link, nodeMap, svg, zoom, W, H){
+function highlightPath(ids, node, link, nodeMap, allLinks, svg, zoom, W, H){
   const set = new Set(ids);
   node.selectAll('.node-circle').attr('opacity',d=>set.has(d.id)?1:0.07);
   node.selectAll('.node-label').attr('opacity',d=>set.has(d.id)?1:0.04);
@@ -598,6 +598,8 @@ function highlightPath(ids, node, link, nodeMap, svg, zoom, W, H){
     if(chunkNode){
       node.classed('selected',n=>n.id===chunkNode.id);
       zoomTo(chunkNode,svg,zoom,W,H);
+      // Force panel open
+      document.getElementById('panel').classList.add('open');
       openPanel(chunkNode,allLinks,nodeMap);
       updateBC(chunkNode,nodeMap);
       // Highlight chunk node connections
