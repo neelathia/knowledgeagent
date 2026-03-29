@@ -21,6 +21,10 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .topbar-title span{color:#1D9E75;}
 .topbar-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
+.searchbar{display:flex;gap:6px;align-items:center;}
+.searchbar select{background:rgba(19,21,24,0.7);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;max-width:280px;}
+.searchbar button{padding:8px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(29,158,117,0.18);color:var(--text);font-size:12px;cursor:pointer;transition:background .15s;white-space:nowrap;}
+.searchbar button:hover{background:rgba(29,158,117,0.3);border-color:rgba(29,158,117,0.5);}
 .nav-link{font-size:12px;color:var(--text-dim);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:8px;transition:all .2s;}
 .nav-link:hover{color:var(--text);border-color:rgba(255,255,255,0.18);}
 .pill{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 10px;border-radius:20px;border:1px solid;}
@@ -96,6 +100,10 @@ svg{width:100%;height:100%;}
   </div>
   <div class="topbar-right">
     <div class="legend" id="legend"></div>
+    <div class="searchbar">
+      <select id="demo-query"></select>
+      <button id="demo-search">Run retrieval demo</button>
+    </div>
     <span class="pill pill-green" id="nodePill">— nodes</span>
     <span class="pill pill-blue" id="chunkPill">— chunks</span>
     <a href="agent.html" class="nav-link">Agent →</a>
@@ -461,7 +469,131 @@ function renderGraph(docs){
     zoomTo(d,svg,zoom,W,H);
   };
 
+  // ── Build dynamic retrieval demos from actual node IDs ──────────────────
+  const hierSpine = hierIds.filter(id => nodeMap[id]);
+  const demos = [];
+
+  // For each How-To doc, build intent-based demo paths
+  nodes.filter(n=>n.cat==='howto').forEach(ht => {
+    const docChunks = nodes.filter(n=>n.cat==='chunk' && n.doc_id===ht.doc_id);
+    const intentMap = {};
+    docChunks.forEach(c => { if(!intentMap[c.intent]) intentMap[c.intent]=c; });
+
+    const sysNodes  = nodes.filter(n=>n.cat==='system').slice(0,2).map(n=>n.id);
+    const datNodes  = nodes.filter(n=>n.cat==='data').slice(0,2).map(n=>n.id);
+    const procNodes = nodes.filter(n=>n.cat==='process').slice(0,2).map(n=>n.id);
+    const l5id = nodes.find(n=>n.cat==='l5'&&n.children&&n.children.includes(ht.id))?.id;
+
+    const spine = [...hierSpine.filter(id=>id!=='root'||(hierSpine.length<3)), l5id, ht.id].filter(Boolean);
+
+    if(intentMap['DO']){
+      demos.push({
+        value:`${ht.doc_id}-do`,
+        label:`How do I create a ${ht.doc_id}?`,
+        path:[...spine, intentMap['DO'].id, ...sysNodes.slice(0,1), ...datNodes.slice(0,2)].filter(id=>nodeMap[id]),
+        title:`Retrieval: DO intent → ${intentMap['DO'].chunk_id||intentMap['DO'].id}`,
+        body:`Query routed to DO intent → ${ht.doc_id} steps chunk retrieved. 5-map context adds systems and data entities. Response contract: numbered steps ending with verification.`
+      });
+    }
+    if(intentMap['FIX']){
+      demos.push({
+        value:`${ht.doc_id}-fix`,
+        label:`Something not working in ${ht.doc_id}`,
+        path:[...spine, intentMap['FIX'].id, ...sysNodes, ...datNodes.slice(0,1)].filter(id=>nodeMap[id]),
+        title:`Retrieval: FIX intent → ${intentMap['FIX'].id}`,
+        body:`Query routed to FIX intent → troubleshoot chunk retrieved. Response contract: Problem / Cause / Fix for each issue. Root cause stated explicitly before fix steps.`
+      });
+    }
+    if(intentMap['CONSTRAINT']){
+      demos.push({
+        value:`${ht.doc_id}-constraint`,
+        label:`Critical rules for ${ht.doc_id}`,
+        path:[...spine, intentMap['CONSTRAINT'].id, ...sysNodes.slice(0,1), ...datNodes].filter(id=>nodeMap[id]),
+        title:`Retrieval: CONSTRAINT intent → ${intentMap['CONSTRAINT'].id}`,
+        body:`Query routed to CONSTRAINT intent → rules chunk retrieved. Response contract: bullet list of rules, each with explicit impact if violated.`
+      });
+    }
+    if(intentMap['CHECK']){
+      demos.push({
+        value:`${ht.doc_id}-check`,
+        label:`What do I need before ${ht.doc_id}?`,
+        path:[...spine, intentMap['CHECK'].id, ...sysNodes.slice(0,1), ...datNodes.slice(0,2)].filter(id=>nodeMap[id]),
+        title:`Retrieval: CHECK intent → ${intentMap['CHECK'].id}`,
+        body:`Query routed to CHECK intent → prerequisites chunk retrieved. Response contract: checkbox-style checklist, each item independently verifiable.`
+      });
+    }
+    if(intentMap['LEARN']){
+      demos.push({
+        value:`${ht.doc_id}-learn`,
+        label:`What is ${ht.doc_id}?`,
+        path:[...spine, intentMap['LEARN'].id, ...procNodes.slice(0,1)].filter(id=>nodeMap[id]),
+        title:`Retrieval: LEARN intent → ${intentMap['LEARN'].id}`,
+        body:`Query routed to LEARN intent → overview or glossary chunk retrieved. Response contract: concise prose, 3-5 sentences per concept.`
+      });
+    }
+  });
+
+  // Populate dropdown
+  const select = document.getElementById('demo-query');
+  select.innerHTML = '';
+  demos.forEach(d=>{
+    const opt = document.createElement('option');
+    opt.value = d.value;
+    opt.textContent = d.label;
+    select.appendChild(opt);
+  });
+
+  // Demo search handler
+  document.getElementById('demo-search').addEventListener('click',()=>{
+    const val = select.value;
+    const demo = demos.find(d=>d.value===val);
+    if(!demo) return;
+    showToast(demo.title, demo.body);
+    highlightPath(demo.path, node, link, nodeMap, svg, zoom, W, H);
+  });
+
   document.getElementById('loading-overlay').style.display='none';
+}
+
+// ── Highlight path ────────────────────────────────────────────────────────
+function highlightPath(ids, node, link, nodeMap, svg, zoom, W, H){
+  const set = new Set(ids);
+  node.selectAll('.node-circle').attr('opacity',d=>set.has(d.id)?1:0.07);
+  node.selectAll('.node-label').attr('opacity',d=>set.has(d.id)?1:0.04);
+  link.attr('opacity',l=>{
+    const s=l.source.id||l.source,t=l.target.id||l.target;
+    return(set.has(s)&&set.has(t))?1:0.04;
+  }).style('stroke-width',l=>{
+    const s=l.source.id||l.source,t=l.target.id||l.target;
+    return(set.has(s)&&set.has(t))?2.8:1.2;
+  });
+
+  // Animate through the path sequentially
+  let i=0;
+  const timer=setInterval(()=>{
+    if(i>=ids.length){clearInterval(timer);return;}
+    const d=nodeMap[ids[i]];
+    if(d){
+      node.classed('selected',n=>n.id===d.id);
+      zoomTo(d,svg,zoom,W,H);
+    }
+    i++;
+  },650);
+
+  // Reset after 9 seconds
+  setTimeout(()=>{
+    clearInterval(timer);
+    node.selectAll('.node-circle').attr('opacity',0.82);
+    node.selectAll('.node-label').attr('opacity',1);
+    link.attr('opacity',1).style('stroke-width',null).style('stroke',null);
+    node.classed('selected',false);
+  },9000);
+}
+
+function showToast(title,body){
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-body').textContent=body;
+  document.getElementById('toast').classList.add('open');
 }
 
 // ── Selection ─────────────────────────────────────────────────────────────
