@@ -236,7 +236,7 @@ function loadRecommendations(){
   const LOG_KEY = 'ok_query_log';
   try {
     const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
-    const gaps = stored.filter(e=>e.gap);
+    const gaps = stored.filter(e=>e.gap || e.gap_reason);
     const panel = document.getElementById('recPanel');
     if(!panel) return;
     if(!gaps.length){ panel.style.display='none'; return; }
