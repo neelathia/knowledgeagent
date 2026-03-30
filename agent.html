@@ -3,137 +3,489 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Operational Knowledge Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<title>Operational Knowledge Agent · Neela Thiagarajan</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy:#0d1b2e; --navy-mid:#142035; --navy-card:#19293f;
-  --navy-border:rgba(255,255,255,0.07);
-  --blue:#2563eb; --blue-glow:rgba(37,99,235,0.25);
-  --teal:#0ea5e9; --gold:#f59e0b; --gold-light:#fcd34d;
-  --white:#f1f5f9; --slate:#94a3b8; --slate-light:#cbd5e1;
-  --green:#10b981; --red:#f87171; --purple:#a78bfa; --orange:#fb923c;
-  --intent-do:#10b981; --intent-fix:#f87171; --intent-chk:#3b82f6;
-  --intent-con:#f59e0b; --intent-lrn:#a78bfa;
+  --black:#000000;
+  --surface:#0a0a0a;
+  --surface-2:#111111;
+  --surface-3:#1a1a1a;
+  --border:#222222;
+  --border-light:#2e2e2e;
+  --white:#ffffff;
+  --text:#e8e8e8;
+  --text-dim:#666666;
+  --text-muted:#444444;
+  --green:#00ff88;
+  --green-dim:rgba(0,255,136,0.12);
+  --green-glow:rgba(0,255,136,0.06);
+  --intent-do:#00ff88;
+  --intent-fix:#ff4d4d;
+  --intent-chk:#4d9fff;
+  --intent-con:#ffb84d;
+  --intent-lrn:#c084fc;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(37,99,235,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
 
-/* API screen */
-#apiScreen{position:fixed;inset:0;background:var(--navy);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
-.api-card{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:20px;padding:40px;max-width:480px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
-.api-card .logo{width:52px;height:52px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:white;margin-bottom:24px;box-shadow:0 0 30px var(--blue-glow);}
-.api-card h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
-.api-card p{font-size:13.5px;color:var(--slate);line-height:1.7;margin-bottom:24px;}
-.api-card p a{color:var(--teal);text-decoration:none;}
-.api-input-row{display:flex;gap:10px;}
-.api-input-row input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;color:var(--white);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .2s;}
-.api-input-row input:focus{border-color:rgba(37,99,235,0.5);}
-.api-input-row input::placeholder{color:var(--slate);}
-.btn-primary{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:10px;padding:12px 20px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 4px 16px var(--blue-glow);}
-.btn-primary:hover{transform:translateY(-1px);}
-.api-note{margin-top:14px;font-size:11.5px;color:var(--slate);font-family:'DM Mono',monospace;line-height:1.6;}
-.loading-msg{margin-top:16px;font-size:12px;color:var(--teal);font-family:'DM Mono',monospace;display:none;}
+/* Grain overlay */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:999;
+}
 
-/* App */
-#app{display:none;flex-direction:column;height:100vh;position:relative;z-index:1;}
+body{
+  background:var(--black);
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
 
-/* Topbar */
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--navy-border);background:rgba(13,27,46,0.8);backdrop-filter:blur(12px);flex-shrink:0;}
-.topbar-left{display:flex;align-items:center;gap:12px;}
-.topbar-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;}
-.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
-.topbar-sub{font-size:11px;color:var(--slate);font-family:'DM Mono',monospace;}
-.topbar-right{display:flex;align-items:center;gap:10px;}
-.pill{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 10px;border-radius:20px;border:1px solid;}
-.pill-green{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);}
-.pill-blue{color:var(--teal);border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);}
-.pill-gold{color:var(--gold);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);}
-.nav-link{font-size:12px;color:var(--slate);text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;transition:all .2s;font-family:'DM Sans',sans-serif;}
-.nav-link:hover{color:var(--white);border-color:rgba(255,255,255,0.18);}
-.reset-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;color:var(--slate);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
-.reset-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
+/* ── API SCREEN ── */
+#apiScreen{
+  position:fixed;inset:0;
+  background:var(--black);
+  z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
 
-/* Body */
+.api-card{
+  max-width:460px;width:100%;
+}
+
+.api-logo{
+  font-family:'Poppins',sans-serif;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.02em;
+  color:var(--white);
+  margin-bottom:48px;
+  display:flex;align-items:center;gap:6px;
+}
+.api-logo span{color:var(--green);}
+
+.api-headline{
+  font-family:'Poppins',sans-serif;
+  font-size:30px;
+  font-weight:800;
+  color:var(--white);
+  line-height:1.0;
+  letter-spacing:-.01em;
+  margin-bottom:12px;
+}
+.api-headline em{font-style:normal;color:var(--green);}
+
+.api-sub{
+  font-size:14px;
+  color:var(--text-dim);
+  line-height:1.7;
+  margin-bottom:32px;
+  max-width:360px;
+}
+.api-sub a{color:var(--green);text-decoration:none;}
+
+.api-input-row{display:flex;gap:8px;margin-bottom:12px;}
+
+.api-input-row input{
+  flex:1;
+  background:var(--surface-2);
+  border:1px solid var(--border-light);
+  border-radius:8px;
+  padding:14px 16px;
+  color:var(--white);
+  font-family:'DM Mono',monospace;
+  font-size:13px;
+  outline:none;
+  transition:border-color .2s;
+}
+.api-input-row input:focus{border-color:var(--green);}
+.api-input-row input::placeholder{color:var(--text-muted);}
+
+.btn-primary{
+  background:var(--white);
+  color:var(--black);
+  border:none;
+  border-radius:8px;
+  padding:14px 22px;
+  font-family:'Poppins',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.btn-primary:hover{background:var(--green);transform:translateY(-1px);}
+
+.api-note{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--text-muted);
+  line-height:1.6;
+}
+.loading-msg{
+  margin-top:12px;
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--green);
+  display:none;
+}
+
+/* ── APP ── */
+#app{display:none;flex-direction:column;height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  height:56px;
+  border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,0.9);
+  backdrop-filter:blur(20px);
+  flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+
+.topbar-logo{
+  font-family:'Poppins',sans-serif;
+  font-size:15px;
+  font-weight:800;
+  color:var(--white);
+  letter-spacing:-.01em;
+  display:flex;align-items:center;gap:4px;
+}
+.topbar-logo span{color:var(--green);}
+
+.topbar-divider{width:1px;height:20px;background:var(--border);}
+
+.topbar-title{
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;
+  color:var(--text-dim);
+}
+.topbar-sub{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--text-muted);
+  margin-top:1px;
+}
+
+.topbar-right{display:flex;align-items:center;gap:8px;}
+
+.pill{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  padding:4px 10px;
+  border-radius:100px;
+  border:1px solid;
+}
+.pill-green{color:var(--green);border-color:rgba(0,255,136,.2);background:var(--green-dim);}
+.pill-white{color:var(--text-dim);border-color:var(--border-light);background:transparent;}
+
+.nav-link{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--text-dim);
+  text-decoration:none;
+  padding:6px 12px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  transition:all .2s;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.nav-link:hover{color:var(--white);border-color:var(--border-light);}
+
+.reset-btn{
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:6px 12px;
+  color:var(--text-dim);
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .2s;
+}
+.reset-btn:hover{border-color:var(--border-light);color:var(--white);}
+
+/* ── BODY ── */
 .body{display:flex;flex:1;overflow:hidden;}
 
-/* Sidebar */
-.sidebar{width:300px;flex-shrink:0;border-right:1px solid var(--navy-border);overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:20px;background:rgba(13,27,46,0.5);}
-.sidebar::-webkit-scrollbar{width:3px;}
-.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
-.section-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
-.section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
-.prompt-list{display:flex;flex-direction:column;gap:5px;}
-.prompt-chip{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:9px;cursor:pointer;transition:all .18s;text-align:left;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--slate-light);line-height:1.45;}
-.prompt-chip:hover{background:rgba(37,99,235,0.1);border-color:rgba(37,99,235,0.25);color:var(--white);transform:translateX(2px);}
-.itag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:4px;flex-shrink:0;margin-top:1px;}
-.itag-do{background:rgba(16,185,129,0.15);color:var(--intent-do);}
-.itag-fix{background:rgba(248,113,113,0.15);color:var(--intent-fix);}
-.itag-chk{background:rgba(59,130,246,0.15);color:var(--intent-chk);}
-.itag-lrn{background:rgba(167,139,250,0.15);color:var(--intent-lrn);}
-.itag-con{background:rgba(245,158,11,0.15);color:var(--intent-con);}
+/* ── SIDEBAR ── */
+.sidebar{
+  width:280px;
+  flex-shrink:0;
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  padding:20px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  background:rgba(0,0,0,.6);
+}
+.sidebar::-webkit-scrollbar{width:2px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px;}
+
+.section-label{
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.prompt-list{display:flex;flex-direction:column;gap:4px;}
+
+.prompt-chip{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:10px 12px;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .18s;
+  text-align:left;
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  color:var(--text-dim);
+  line-height:1.45;
+}
+.prompt-chip:hover{
+  background:var(--surface-2);
+  border-color:var(--border-light);
+  color:var(--text);
+  transform:translateX(2px);
+}
+
+.itag{
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  padding:2px 6px;
+  border-radius:3px;
+  flex-shrink:0;
+  margin-top:1px;
+  letter-spacing:.04em;
+}
+.itag-do{background:rgba(0,255,136,.1);color:var(--intent-do);}
+.itag-fix{background:rgba(255,77,77,.1);color:var(--intent-fix);}
+.itag-chk{background:rgba(77,159,255,.1);color:var(--intent-chk);}
+.itag-lrn{background:rgba(192,132,252,.1);color:var(--intent-lrn);}
+.itag-con{background:rgba(255,184,77,.1);color:var(--intent-con);}
 
 /* Process filter */
-.process-filter{display:flex;flex-wrap:wrap;gap:6px;}
-.proc-btn{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--slate);cursor:pointer;transition:all .18s;}
-.proc-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--white);}
-.proc-btn.active{background:rgba(37,99,235,0.15);border-color:rgba(37,99,235,0.35);color:var(--teal);}
+.process-filter{display:flex;flex-wrap:wrap;gap:5px;}
+
+.proc-btn{
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:5px 10px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all .18s;
+}
+.proc-btn:hover{border-color:var(--border-light);color:var(--text-dim);}
+.proc-btn.active{
+  background:var(--green-dim);
+  border-color:rgba(0,255,136,.3);
+  color:var(--green);
+}
 
 /* Route panel */
-.route-panel{background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px;display:none;}
+.route-panel{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  display:none;
+}
 .route-panel.show{display:block;}
-.route-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px;}
+.route-row{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:5px 0;
+  border-bottom:1px solid var(--border);
+  gap:8px;
+}
 .route-row:last-child{border-bottom:none;}
-.rl{font-family:'DM Mono',monospace;font-size:10px;color:var(--slate);flex-shrink:0;}
-.rv{font-family:'DM Mono',monospace;font-size:10px;color:var(--white);text-align:right;}
-.chunk-pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(14,165,233,0.12);color:var(--teal);margin:1px 1px 0 0;}
+.rl{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0;letter-spacing:.05em;}
+.rv{font-family:'DM Mono',monospace;font-size:9px;color:var(--text);text-align:right;}
+.chunk-pill{
+  display:inline-block;
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  padding:2px 6px;
+  border-radius:3px;
+  background:rgba(0,255,136,.08);
+  color:var(--green);
+  margin:1px 1px 0 0;
+}
 
-/* Chat */
+/* ── CHAT ── */
 .chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth;}
-.messages::-webkit-scrollbar{width:4px;}
-.messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+
+.messages{
+  flex:1;overflow-y:auto;
+  padding:32px 28px;
+  display:flex;flex-direction:column;
+  gap:24px;
+  scroll-behavior:smooth;
+}
+.messages::-webkit-scrollbar{width:2px;}
+.messages::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px;}
 
 /* Empty state */
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:60px 40px;}
-.empty-orb{width:72px;height:72px;background:linear-gradient(135deg,rgba(37,99,235,0.2),rgba(14,165,233,0.2));border:1px solid rgba(37,99,235,0.2);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;}
-.empty h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
-.empty p{font-size:13.5px;color:var(--slate);max-width:340px;line-height:1.7;}
-.empty-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;}
-.empty-chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--slate-light);cursor:pointer;transition:all .18s;}
-.empty-chip:hover{background:rgba(37,99,235,0.1);border-color:rgba(37,99,235,0.3);color:var(--white);}
+.empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;gap:20px;padding:60px 40px;
+}
+.empty-mark{
+  font-family:'Poppins',sans-serif;
+  font-size:13px;
+  font-weight:800;
+  color:var(--white);
+  display:flex;align-items:center;gap:4px;
+  margin-bottom:4px;
+}
+.empty-mark span{color:var(--green);}
+.empty h3{
+  font-family:'Poppins',sans-serif;
+  font-size:24px;
+  font-weight:800;
+  color:var(--white);
+  letter-spacing:-.01em;
+  line-height:1.1;
+}
+.empty p{font-size:13px;color:var(--text-dim);max-width:360px;line-height:1.7;}
+.empty-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px;}
+.empty-chip{
+  background:transparent;
+  border:1px solid var(--border-light);
+  border-radius:100px;
+  padding:8px 16px;
+  font-size:12px;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .2s;
+}
+.empty-chip:hover{
+  background:var(--green-dim);
+  border-color:rgba(0,255,136,.3);
+  color:var(--green);
+}
 
 /* Messages */
-.msg{display:flex;gap:14px;animation:fadein .25s ease;max-width:820px;}
-@keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-.msg-avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px;}
-.msg.user .msg-avatar{background:rgba(37,99,235,0.2);border:1px solid rgba(37,99,235,0.3);}
-.msg.bot .msg-avatar{background:linear-gradient(135deg,rgba(37,99,235,0.25),rgba(14,165,233,0.25));border:1px solid rgba(14,165,233,0.25);}
+.msg{display:flex;gap:14px;animation:fadein .25s ease;max-width:840px;}
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.msg-avatar{
+  width:32px;height:32px;
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  flex-shrink:0;margin-top:2px;
+}
+.msg.user .msg-avatar{background:var(--surface-3);border:1px solid var(--border-light);}
+.msg.bot .msg-avatar{background:var(--green-dim);border:1px solid rgba(0,255,136,.2);}
+
 .msg-body{flex:1;}
-.msg-who{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
-.msg.user .msg-who{color:#3b82f6;}
-.msg.bot .msg-who{color:var(--teal);}
-.msg-text{font-size:14px;line-height:1.75;color:var(--slate-light);white-space:pre-wrap;word-break:break-word;}
-.msg.user .msg-text{color:var(--white);font-size:14.5px;}
-.typing .msg-text{display:flex;align-items:center;gap:10px;color:var(--slate);font-size:13px;}
+
+.msg-who{
+  font-family:'DM Mono',monospace;
+  font-size:9px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  margin-bottom:6px;
+}
+.msg.user .msg-who{color:var(--text-muted);}
+.msg.bot .msg-who{color:var(--green);}
+
+.msg-text{
+  font-size:14px;
+  line-height:1.75;
+  color:var(--text-dim);
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.msg.user .msg-text{color:var(--text);font-size:15px;}
+
+.typing .msg-text{
+  display:flex;align-items:center;gap:10px;
+  color:var(--text-muted);font-size:13px;
+}
 .dots{display:flex;gap:4px;}
-.dots span{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:bop 1.2s infinite;opacity:.6;}
+.dots span{
+  width:6px;height:6px;
+  background:var(--green);border-radius:50%;
+  animation:bop 1.2s infinite;opacity:.4;
+}
 .dots span:nth-child(2){animation-delay:.2s;}
 .dots span:nth-child(3){animation-delay:.4s;}
-@keyframes bop{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-7px);opacity:1;}}
+@keyframes bop{0%,60%,100%{transform:translateY(0);opacity:.3;}30%{transform:translateY(-6px);opacity:1;}}
 
-/* Input */
-.input-bar{border-top:1px solid var(--navy-border);padding:16px 24px;background:rgba(13,27,46,0.7);backdrop-filter:blur(12px);flex-shrink:0;}
-.input-inner{display:flex;gap:10px;align-items:flex-end;max-width:820px;}
-textarea#qInput{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:13px 16px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;transition:border-color .2s,box-shadow .2s;line-height:1.5;min-height:50px;max-height:140px;}
-textarea#qInput::placeholder{color:var(--slate);}
-textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
-.send{width:50px;height:50px;background:linear-gradient(135deg,var(--blue),var(--teal));border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;box-shadow:0 4px 16px var(--blue-glow);}
-.send:hover{transform:translateY(-1px);}
-.send:disabled{opacity:.35;cursor:not-allowed;transform:none;}
-.send svg{width:20px;height:20px;fill:white;}
-.input-hint{margin-top:8px;font-size:11px;color:var(--slate);font-family:'DM Mono',monospace;}
+/* ── INPUT BAR ── */
+.input-bar{
+  border-top:1px solid var(--border);
+  padding:16px 24px;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(20px);
+  flex-shrink:0;
+}
+.input-inner{display:flex;gap:10px;align-items:flex-end;max-width:840px;}
+
+textarea#qInput{
+  flex:1;
+  background:var(--surface-2);
+  border:1px solid var(--border-light);
+  border-radius:10px;
+  padding:14px 16px;
+  color:var(--white);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  resize:none;outline:none;
+  transition:border-color .2s;
+  line-height:1.5;
+  min-height:50px;max-height:140px;
+}
+textarea#qInput::placeholder{color:var(--text-muted);}
+textarea#qInput:focus{border-color:rgba(0,255,136,.4);}
+
+.send{
+  width:50px;height:50px;
+  background:var(--white);
+  border:none;border-radius:10px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:all .2s;
+}
+.send:hover{background:var(--green);transform:translateY(-1px);}
+.send:disabled{opacity:.2;cursor:not-allowed;transform:none;}
+.send svg{width:18px;height:18px;fill:var(--black);}
+
+.input-hint{
+  margin-top:8px;
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--text-muted);
+  letter-spacing:.03em;
+}
 </style>
 </head>
 <body>
@@ -141,15 +493,17 @@ textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgb
 <!-- API Key Screen -->
 <div id="apiScreen">
   <div class="api-card">
-    <div class="logo">OK</div>
-    <h2>Operational Knowledge Agent</h2>
-    <p>This agent answers questions across all processes in the knowledge base — Task Plans, WGC Campaigns, Standard Work Orders, and more as they are added.<br><br>
-    Enter your Anthropic API key to start. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.</p>
+    <div class="api-logo">OKA<span>.</span></div>
+    <div class="api-headline">Operational<br><em>Knowledge</em> Agent</div>
+    <div class="api-sub">
+      This agent answers questions across all processes in the knowledge base — Task Plans, WGC Campaigns, Standard Work Orders, and more.<br><br>
+      Enter your Anthropic API key to start. Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+    </div>
     <div class="api-input-row">
       <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." onkeydown="if(event.key==='Enter') startApp()"/>
       <button class="btn-primary" onclick="startApp()">Start →</button>
     </div>
-    <div class="api-note">🔒 Your key is stored only in this browser session and sent directly to Anthropic's API only.</div>
+    <div class="api-note">🔒 Your key is stored only in this browser session and sent directly to Anthropic's API.</div>
     <div class="loading-msg" id="loadingMsg">⟳ Loading knowledge base...</div>
   </div>
 </div>
@@ -158,17 +512,18 @@ textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgb
 <div id="app">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="topbar-logo">OK</div>
+      <div class="topbar-logo">OKA<span>.</span></div>
+      <div class="topbar-divider"></div>
       <div>
-        <div class="topbar-title">Operational Knowledge Agent</div>
+        <div class="topbar-title">Knowledge Agent</div>
         <div class="topbar-sub" id="topbarSub">Loading...</div>
       </div>
     </div>
     <div class="topbar-right">
       <span class="pill pill-green">● Live</span>
-      <span class="pill pill-blue" id="corpusPill">0 chunks</span>
-      <span class="pill pill-gold">Neela Thiagarajan</span>
-      <a href="knowledge_graph.html" class="nav-link">Knowledge Graph →</a>
+      <span class="pill pill-white" id="corpusPill">0 chunks</span>
+      <span class="pill pill-white">Neela Thiagarajan</span>
+      <a href="knowledge_graph.html" class="nav-link">Graph →</a>
       <a href="index.html" class="nav-link">Editor →</a>
       <button class="reset-btn" onclick="resetChat()">New Chat</button>
     </div>
@@ -185,7 +540,7 @@ textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgb
       <div>
         <div class="section-label">Try these</div>
         <div class="prompt-list" id="promptList">
-          <div style="font-size:12px;color:var(--slate)">Loading prompts...</div>
+          <div style="font-size:12px;color:var(--text-muted)">Loading prompts...</div>
         </div>
       </div>
       <div class="route-panel" id="routePanel">
@@ -203,8 +558,8 @@ textarea#qInput:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 3px rgb
     <div class="chat-wrap">
       <div class="messages" id="messages">
         <div class="empty" id="emptyState">
-          <div class="empty-orb">🗂️</div>
-          <h3>Ask anything across the knowledge base</h3>
+          <div class="empty-mark">OKA<span>.</span></div>
+          <h3>Ask anything across<br>the knowledge base</h3>
           <p>Questions are routed by process and intent before retrieval. New processes appear automatically as they are added.</p>
           <div class="empty-chips" id="emptyChips"></div>
         </div>
@@ -234,7 +589,6 @@ let sessionLog = [];
 const LOG_KEY = 'ok_query_log';
 const MAX_LOG = 500;
 
-// ── Intent map ────────────────────────────────────────────────────────────
 const INTENT_MAP = {
   "how do i":"DO","how to":"DO","steps to":"DO","step by step":"DO","create a":"DO","set up":"DO","setting up":"DO",
   "what is":"LEARN","explain":"LEARN","difference":"LEARN","what happens":"LEARN","why":"LEARN","what are":"LEARN",
@@ -252,152 +606,74 @@ const CONTRACTS = {
   LEARN:"Respond in clear concise prose, 3-5 sentences max per concept. Focus on clarity.",
 };
 
-const INTENT_TAG = {
-  DO:'itag-do',FIX:'itag-fix',CHECK:'itag-chk',CONSTRAINT:'itag-con',LEARN:'itag-lrn'
-};
+const INTENT_TAG = {DO:'itag-do',FIX:'itag-fix',CHECK:'itag-chk',CONSTRAINT:'itag-con',LEARN:'itag-lrn'};
 
-// ── FALLBACK process keywords ─────────────────────────────────────────────
-// These supplement whatever is in each doc's process_keywords array.
-// Add new entries here whenever the router misses a process.
 const PROCESS_KEYWORD_FALLBACKS = {
-  'SWO': [
-    'standard work order','swo','work order template','swo lookup',
-    'activities lookup','work order creation'
-  ],
-  'TASK-PLAN': [
-    'task plan','task plans','job plan','checklist item','billing relief',
-    'active checklist','required entry','sequence 10','follow-up task'
-  ],
-  'WGC': [
-    'wgc','wgc campaign','work generation campaign','corrective maintenance campaign',
-    'corrective campaign'
-  ],
-  'PMC': [
-    'pmc','pmc campaign','preventive maintenance campaign','pm campaign',
-    'pm schedule','preventive campaign'
-  ],
-  'CAR-LIST': [
-    'car list','campaign car list','20000','20,000 car','car limit','filter criteria'
-  ],
-  'CAR-ACTIVATION': [
-    'activate a car','activate a railcar','car activation','railcar activation',
-    'activate car','activating a car','activating railcar'
-  ],
-  'DEST': [
-    'destroy a car','destroy car','car destruction','end of life','scrap car',
-    'decommission car'
-  ],
-  'EHMS': [
-    'ehms','inspection','hazmat','equipment health'
-  ],
-  'EQUIP-CONFIG': [
-    'equipment configuration','car class','configure equipment','equip config'
-  ],
+  'SWO':['standard work order','swo','work order template','swo lookup','activities lookup','work order creation'],
+  'TASK-PLAN':['task plan','task plans','job plan','checklist item','billing relief','active checklist','required entry','sequence 10','follow-up task'],
+  'WGC':['wgc','wgc campaign','work generation campaign','corrective maintenance campaign','corrective campaign'],
+  'PMC':['pmc','pmc campaign','preventive maintenance campaign','pm campaign','pm schedule','preventive campaign'],
+  'CAR-LIST':['car list','campaign car list','20000','20,000 car','car limit','filter criteria'],
+  'CAR-ACTIVATION':['activate a car','activate a railcar','car activation','railcar activation','activate car','activating a car','activating railcar'],
+  'DEST':['destroy a car','destroy car','car destruction','end of life','scrap car','decommission car'],
+  'EHMS':['ehms','inspection','hazmat','equipment health'],
+  'EQUIP-CONFIG':['equipment configuration','car class','configure equipment','equip config'],
 };
 
-// ── Load corpus ───────────────────────────────────────────────────────────
 async function loadCorpus(){
   try {
     const manifestRes = await fetch('knowledge_base/manifest.json');
     if(!manifestRes.ok) throw new Error('manifest.json not found');
     const manifest = await manifestRes.json();
-
-    CORPUS = [];
-    PROCESS_MAP = {};
-    DOCS = [];
-
+    CORPUS = []; PROCESS_MAP = {}; DOCS = [];
     for(const filename of manifest.docs){
       try {
         const res = await fetch(`knowledge_base/${filename}`);
         if(!res.ok) continue;
         const doc = await res.json();
-
-        const docId        = doc.doc_id;
-        const process      = doc.process;
-        const systems      = doc.systems || [];
-        const dataEntities = doc.data_entities || [];
-        const source       = doc.source || '';
-
-        // Register process keywords from doc
-        (doc.process_keywords || []).forEach(kw => {
-          PROCESS_MAP[kw.toLowerCase()] = process;
-        });
-
-        // Also register from fallback table if this process is listed there
-        (PROCESS_KEYWORD_FALLBACKS[process] || []).forEach(kw => {
-          PROCESS_MAP[kw.toLowerCase()] = process;
-        });
-
-        // Build chunks
+        const docId = doc.doc_id, process = doc.process;
+        const systems = doc.systems || [], dataEntities = doc.data_entities || [];
+        const source = doc.source || '';
+        (doc.process_keywords || []).forEach(kw => { PROCESS_MAP[kw.toLowerCase()] = process; });
+        (PROCESS_KEYWORD_FALLBACKS[process] || []).forEach(kw => { PROCESS_MAP[kw.toLowerCase()] = process; });
         const sections = doc.sections || {};
         Object.entries(sections).forEach(([sectionName, section]) => {
           if(!section.content?.trim()) return;
           CORPUS.push({
-            chunk_id: `${docId}-${sectionName}`,
-            process, doc_id: docId,
-            section: sectionName,
-            intent: section.intent || 'LEARN',
-            audience: section.audience || 'all',
-            content: section.content,
-            keywords: section.keywords || [],
-            business_capability: section.business_capability || '',
-            business_outcome: section.business_outcome || '',
-            process_stage: section.process_stage || '',
-            systems, data_entities: dataEntities,
-            data_triggers: section.data_triggers || '',
-            source,
+            chunk_id:`${docId}-${sectionName}`, process, doc_id:docId, section:sectionName,
+            intent:section.intent||'LEARN', audience:section.audience||'all', content:section.content,
+            keywords:section.keywords||[], business_capability:section.business_capability||'',
+            business_outcome:section.business_outcome||'', process_stage:section.process_stage||'',
+            systems, data_entities:dataEntities, data_triggers:section.data_triggers||'', source,
           });
         });
-
-        DOCS.push({ doc_id: docId, process, title: doc.title, chunks: Object.keys(sections).length });
+        DOCS.push({doc_id:docId, process, title:doc.title, chunks:Object.keys(sections).length});
       } catch(e){ console.warn(`Failed to load ${filename}:`, e); }
     }
-
-    // Register ALL fallback keywords (including for processes not yet in corpus)
-    // This allows gap detection to correctly name the process even without a doc
     Object.entries(PROCESS_KEYWORD_FALLBACKS).forEach(([proc, keywords]) => {
-      keywords.forEach(kw => {
-        if(!PROCESS_MAP[kw.toLowerCase()]) {
-          PROCESS_MAP[kw.toLowerCase()] = proc;
-        }
-      });
+      keywords.forEach(kw => { if(!PROCESS_MAP[kw.toLowerCase()]) PROCESS_MAP[kw.toLowerCase()] = proc; });
     });
-
     return true;
-  } catch(e){
-    console.error('Failed to load manifest:', e);
-    return false;
-  }
+  } catch(e){ console.error('Failed to load manifest:', e); return false; }
 }
 
-// ── Routing ───────────────────────────────────────────────────────────────
 function detectIntent(q){
   const ql = q.toLowerCase();
-  for(const [trigger, intent] of Object.entries(INTENT_MAP)){
-    if(ql.includes(trigger)) return intent;
-  }
+  for(const [trigger, intent] of Object.entries(INTENT_MAP)){ if(ql.includes(trigger)) return intent; }
   return null;
 }
-
 function detectProcess(q){
   const ql = q.toLowerCase();
-  // Longest match wins — prevents "car" matching before "activate a car"
-  let best = null;
-  let bestLen = 0;
+  let best = null, bestLen = 0;
   for(const [kw, proc] of Object.entries(PROCESS_MAP)){
-    if(ql.includes(kw) && kw.length > bestLen){
-      best = proc;
-      bestLen = kw.length;
-    }
+    if(ql.includes(kw) && kw.length > bestLen){ best = proc; bestLen = kw.length; }
   }
   return best;
 }
-
 function retrieve(query, topK=3){
   const ql = query.toLowerCase();
-  const intent  = detectIntent(query);
+  const intent = detectIntent(query);
   const process = activeProcess !== 'all' ? activeProcess : detectProcess(query);
-
   const scored = CORPUS
     .filter(c => activeProcess === 'all' || c.process === activeProcess)
     .map(chunk => {
@@ -409,91 +685,51 @@ function retrieve(query, topK=3){
       const qw = new Set(ql.split(/\s+/));
       const cw = new Set(chunk.content.toLowerCase().split(/\s+/));
       score += [...qw].filter(w => cw.has(w) && w.length > 3).length;
-      return { score, chunk };
+      return {score, chunk};
     })
-    .filter(s => s.score > 0)
-    .sort((a,b) => b.score - a.score)
-    .slice(0, topK)
-    .map(s => s.chunk);
-
-  return { chunks: scored, intent, process };
+    .filter(s => s.score > 0).sort((a,b) => b.score - a.score).slice(0, topK).map(s => s.chunk);
+  return {chunks:scored, intent, process};
 }
-
-// ── Context envelope ──────────────────────────────────────────────────────
 function buildContext(chunks){
-  const caps     = [...new Set(chunks.map(c=>c.business_capability).filter(Boolean))];
-  const stages   = [...new Set(chunks.map(c=>c.process_stage).filter(Boolean))];
-  const systems  = [...new Set(chunks.flatMap(c=>c.systems))];
+  const caps = [...new Set(chunks.map(c=>c.business_capability).filter(Boolean))];
+  const stages = [...new Set(chunks.map(c=>c.process_stage).filter(Boolean))];
+  const systems = [...new Set(chunks.flatMap(c=>c.systems))];
   const entities = [...new Set(chunks.flatMap(c=>c.data_entities))];
   const triggers = [...new Set(chunks.map(c=>c.data_triggers).filter(Boolean))];
-
   const parts = [];
-  if(caps.length || stages.length){
-    let ctx = 'BUSINESS + PROCESS CONTEXT:';
-    if(caps.length) ctx += `\n  Business Capability: ${caps.join(', ')}`;
-    if(stages.length) ctx += `\n  Process Stage: ${stages.join(', ')}`;
+  if(caps.length||stages.length){
+    let ctx='BUSINESS + PROCESS CONTEXT:';
+    if(caps.length) ctx+=`\n  Business Capability: ${caps.join(', ')}`;
+    if(stages.length) ctx+=`\n  Process Stage: ${stages.join(', ')}`;
     parts.push(ctx);
   }
   if(systems.length) parts.push(`SYSTEMS INVOLVED: ${systems.join(', ')}`);
-  if(entities.length || triggers.length){
-    let ctx = 'DATA LAYER:';
-    if(entities.length) ctx += `\n  Key Entities: ${entities.join(', ')}`;
-    if(triggers.length) ctx += `\n  Data Triggers: ${triggers.join('; ')}`;
+  if(entities.length||triggers.length){
+    let ctx='DATA LAYER:';
+    if(entities.length) ctx+=`\n  Key Entities: ${entities.join(', ')}`;
+    if(triggers.length) ctx+=`\n  Data Triggers: ${triggers.join('; ')}`;
     parts.push(ctx);
   }
-  parts.push('KNOWLEDGE CONTENT:\n' + chunks.map(c =>
-    `[${c.doc_id} | ${c.section.toUpperCase()} | ${c.intent}]\n${c.content.trim()}`
-  ).join('\n\n---\n\n'));
+  parts.push('KNOWLEDGE CONTENT:\n'+chunks.map(c=>`[${c.doc_id} | ${c.section.toUpperCase()} | ${c.intent}]\n${c.content.trim()}`).join('\n\n---\n\n'));
   return parts.join('\n\n');
 }
-
-// ── Analytics logging ─────────────────────────────────────────────────────
-// GAP LOGIC (fixed):
-// gap:true  = no chunks returned OR process detected but no doc exists in corpus
-// gap:false = chunks returned AND process either matched or is genuinely universal
-// gap_reason distinguishes WHY:
-//   "no_chunks"         = retrieval returned nothing
-//   "no_doc_for_process"= process keyword matched but no How-To exists yet
-//   "weak_intent_match" = chunks returned but none match detected intent
-//   null                = clean hit
 function logQuery(query, intent, process, chunks){
-  const noChunks      = chunks.length === 0;
-  const processKnown  = !!process;
+  const noChunks = chunks.length === 0;
+  const processKnown = !!process;
   const processHasDoc = processKnown && DOCS.some(d => d.process === process);
-  const weakIntent    = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
-
-  // True gap: no content OR process is known but has no doc yet
+  const weakIntent = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
   const isGap = noChunks || (processKnown && !processHasDoc);
-
-  const gapReason = noChunks           ? 'no_chunks'
-                  : (processKnown && !processHasDoc) ? 'no_doc_for_process'
-                  : weakIntent         ? 'weak_intent_match'
-                  : !processKnown && chunks.length > 0 ? 'no_process_match'
-                  : null;
-
-  const entry = {
-    ts: new Date().toISOString(),
-    query,
-    intent: intent || null,
-    process: process || null,
-    chunks_retrieved: chunks.length,
-    chunk_ids: chunks.map(c => c.chunk_id),
-    gap: isGap,
-    gap_reason: gapReason,
-  };
-
+  const gapReason = noChunks ? 'no_chunks' : (processKnown&&!processHasDoc) ? 'no_doc_for_process' : weakIntent ? 'weak_intent_match' : !processKnown&&chunks.length>0 ? 'no_process_match' : null;
+  const entry = {ts:new Date().toISOString(), query, intent:intent||null, process:process||null, chunks_retrieved:chunks.length, chunk_ids:chunks.map(c=>c.chunk_id), gap:isGap, gap_reason:gapReason};
   sessionLog.push(entry);
-
   try {
-    const stored = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
     stored.push(entry);
     if(stored.length > MAX_LOG) stored.splice(0, stored.length - MAX_LOG);
     localStorage.setItem(LOG_KEY, JSON.stringify(stored));
   } catch(e){ console.warn('Log save failed:', e); }
-
   if(isGap) updateGapBanner();
 }
-
 function updateGapBanner(){
   const gaps = sessionLog.filter(e => e.gap);
   if(!gaps.length) return;
@@ -501,72 +737,37 @@ function updateGapBanner(){
   if(!banner){
     banner = document.createElement('div');
     banner.id = 'gapBanner';
-    banner.style.cssText = `
-      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-      background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);
-      border-radius:10px;padding:10px 18px;font-size:12px;color:#fcd34d;
-      font-family:'DM Mono',monospace;z-index:50;display:flex;align-items:center;
-      gap:10px;backdrop-filter:blur(12px);cursor:pointer;transition:all .2s;
-      white-space:nowrap;`;
+    banner.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(255,184,77,0.1);border:1px solid rgba(255,184,77,0.3);border-radius:8px;padding:10px 18px;font-size:11px;color:#ffb84d;font-family:'DM Mono',monospace;z-index:50;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px);cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.03em;`;
     banner.onclick = () => showGapReport();
     document.getElementById('app').appendChild(banner);
   }
   const uniq = new Set(gaps.map(g => g.process || g.query.split(' ').slice(0,3).join(' ')));
-  banner.innerHTML = `⚠ ${gaps.length} gap${gaps.length!==1?'s':''} this session — ${[...uniq].slice(0,2).join(', ')}${uniq.size>2?'…':''} <span style="opacity:.6">· View report →</span>`;
+  banner.innerHTML = `⚠ ${gaps.length} gap${gaps.length!==1?'s':''} this session — ${[...uniq].slice(0,2).join(', ')}${uniq.size>2?'…':''} <span style="opacity:.5">· View →</span>`;
 }
-
 function showGapReport(){
   const stored = JSON.parse(localStorage.getItem(LOG_KEY)||'[]');
   const gaps = stored.filter(e => e.gap === true);
   const groups = {};
   gaps.forEach(g => {
     const key = g.process || 'unmatched';
-    if(!groups[key]) groups[key] = { count:0, queries:[], intents:{} };
+    if(!groups[key]) groups[key] = {count:0, queries:[], intents:{}};
     groups[key].count++;
     if(!groups[key].queries.includes(g.query)) groups[key].queries.push(g.query);
-    if(g.intent) groups[key].intents[g.intent] = (groups[key].intents[g.intent]||0) + 1;
+    if(g.intent) groups[key].intents[g.intent] = (groups[key].intents[g.intent]||0)+1;
   });
-
-  const rows = Object.entries(groups)
-    .sort((a,b) => b[1].count - a[1].count)
-    .map(([proc, data]) => {
-      const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'unknown';
-      const suggestion = proc === 'unmatched'
-        ? 'Add process keywords to PROCESS_KEYWORD_FALLBACKS in agent.html'
-        : `Create How-To doc for process: ${proc}`;
-      return `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#fcd34d">${proc}</span>
-          <span style="font-size:11px;color:var(--slate)">${data.count} gap${data.count!==1?'s':''} · top intent: ${topIntent}</span>
-        </div>
-        <div style="font-size:11px;color:var(--slate);margin-bottom:4px">Sample: ${data.queries.slice(0,2).map(q=>`"${q}"`).join(', ')}</div>
-        <div style="font-size:11px;color:#0ea5e9">→ ${suggestion}</div>
-      </div>`;
-    }).join('');
-
+  const rows = Object.entries(groups).sort((a,b) => b[1].count - a[1].count).map(([proc, data]) => {
+    const topIntent = Object.entries(data.intents).sort((a,b)=>b[1]-a[1])[0]?.[0]||'unknown';
+    const suggestion = proc==='unmatched' ? 'Add process keywords to PROCESS_KEYWORD_FALLBACKS in agent.html' : `Create How-To doc for process: ${proc}`;
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-family:'DM Mono',monospace;font-size:11px;color:#ffb84d">${proc}</span><span style="font-size:10px;color:var(--text-dim)">${data.count} gap${data.count!==1?'s':''} · intent: ${topIntent}</span></div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Sample: ${data.queries.slice(0,2).map(q=>`"${q}"`).join(', ')}</div><div style="font-size:11px;color:var(--green)">→ ${suggestion}</div></div>`;
+  }).join('');
   let modal = document.getElementById('gapModal');
   if(modal) modal.remove();
   modal = document.createElement('div');
   modal.id = 'gapModal';
-  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;`;
-  modal.innerHTML = `
-    <div style="background:#162336;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Knowledge Gap Report</div>
-          <div style="font-size:12px;color:var(--slate);font-family:'DM Mono',monospace;margin-top:4px">${gaps.length} true gaps · ${stored.length} total logged</div>
-        </div>
-        <button onclick="document.getElementById('gapModal').remove()" style="background:none;border:none;color:var(--slate);font-size:22px;cursor:pointer;line-height:1">&times;</button>
-      </div>
-      ${rows || '<div style="color:var(--slate);font-size:13px">No gaps recorded yet.</div>'}
-      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="exportLog()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:8px 16px;color:var(--slate-light);font-size:12px;cursor:pointer">Export Log JSON</button>
-        <button onclick="clearLog()" style="background:transparent;border:1px solid rgba(248,113,113,0.2);border-radius:9px;padding:8px 16px;color:#f87171;font-size:12px;cursor:pointer">Clear Log</button>
-      </div>
-    </div>`;
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;`;
+  modal.innerHTML = `<div style="background:var(--surface-2);border:1px solid var(--border-light);border-radius:12px;padding:28px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><div><div style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;color:var(--white)">Knowledge Gap Report</div><div style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:4px">${gaps.length} true gaps · ${stored.length} total logged</div></div><button onclick="document.getElementById('gapModal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;">&times;</button></div>${rows||'<div style="color:var(--text-dim);font-size:13px">No gaps recorded yet.</div>'}<div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end"><button onclick="exportLog()" style="background:transparent;border:1px solid var(--border-light);border-radius:8px;padding:8px 16px;color:var(--text-dim);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">Export Log</button><button onclick="clearLog()" style="background:transparent;border:1px solid rgba(255,77,77,.2);border-radius:8px;padding:8px 16px;color:#ff4d4d;font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">Clear Log</button></div></div>`;
   document.body.appendChild(modal);
 }
-
 function exportLog(){
   const stored = localStorage.getItem(LOG_KEY)||'[]';
   const blob = new Blob([stored],{type:'application/json'});
@@ -575,9 +776,8 @@ function exportLog(){
   a.download = `ok_query_log_${new Date().toISOString().split('T')[0]}.json`;
   a.click();
 }
-
 function clearLog(){
-  if(!confirm('Clear all logged queries? This cannot be undone.')) return;
+  if(!confirm('Clear all logged queries?')) return;
   localStorage.removeItem(LOG_KEY);
   sessionLog = [];
   const banner = document.getElementById('gapBanner');
@@ -585,20 +785,15 @@ function clearLog(){
   const modal = document.getElementById('gapModal');
   if(modal) modal.remove();
 }
-
-// ── UI helpers ────────────────────────────────────────────────────────────
 function buildSidebar(){
   const filter = document.getElementById('processFilter');
   const processes = [...new Set(CORPUS.map(c=>c.process))];
   processes.forEach(proc => {
     const btn = document.createElement('button');
-    btn.className = 'proc-btn';
-    btn.dataset.proc = proc;
-    btn.textContent = proc;
+    btn.className = 'proc-btn'; btn.dataset.proc = proc; btn.textContent = proc;
     btn.onclick = () => setProcess(proc, btn);
     filter.appendChild(btn);
   });
-
   const prompts = [];
   DOCS.forEach(doc => {
     const docChunks = CORPUS.filter(c => c.doc_id === doc.doc_id);
@@ -610,7 +805,6 @@ function buildSidebar(){
     if(intents.has('CHECK'))      prompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`});
     if(intents.has('LEARN'))      prompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`});
   });
-
   const list = document.getElementById('promptList');
   list.innerHTML = '';
   prompts.slice(0,12).forEach(p => {
@@ -620,200 +814,97 @@ function buildSidebar(){
     btn.onclick = () => ask(p.text);
     list.appendChild(btn);
   });
-
   const chips = document.getElementById('emptyChips');
   chips.innerHTML = '';
   prompts.slice(0,4).forEach(p => {
     const span = document.createElement('span');
-    span.className = 'empty-chip';
-    span.textContent = p.text;
+    span.className = 'empty-chip'; span.textContent = p.text;
     span.onclick = () => ask(p.text);
     chips.appendChild(span);
   });
-
   const processes2 = [...new Set(CORPUS.map(c=>c.process))];
-  document.getElementById('topbarSub').textContent =
-    `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
+  document.getElementById('topbarSub').textContent = `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
   document.getElementById('corpusPill').textContent = `${CORPUS.length} chunks`;
 }
-
 function setProcess(proc, btn){
   activeProcess = proc;
   document.querySelectorAll('.proc-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
-
-function grow(el){
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,140)+'px';
-}
-
-function handleKey(e){
-  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
-}
-
-function ask(text){
-  document.getElementById('qInput').value = text;
-  grow(document.getElementById('qInput'));
-  sendMsg();
-}
-
-function removeEmpty(){
-  const e = document.getElementById('emptyState');
-  if(e) e.remove();
-}
-
+function grow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function ask(text){ document.getElementById('qInput').value=text; grow(document.getElementById('qInput')); sendMsg(); }
+function removeEmpty(){ const e=document.getElementById('emptyState'); if(e) e.remove(); }
 function addMsg(role, text, isTyping=false){
   removeEmpty();
   const container = document.getElementById('messages');
   const div = document.createElement('div');
   div.className = `msg ${role}${isTyping?' typing':''}`;
-  div.innerHTML = `
-    <div class="msg-avatar">${role==='user'?'👤':'🤖'}</div>
-    <div class="msg-body">
-      <div class="msg-who">${role==='user'?'You':'Knowledge Agent'}</div>
-      <div class="msg-text">${isTyping
-        ?'<div class="dots"><span></span><span></span><span></span></div> Routing and retrieving...'
-        :htmlEsc(text)}</div>
-    </div>`;
+  div.innerHTML = `<div class="msg-avatar">${role==='user'?'👤':'⚡'}</div><div class="msg-body"><div class="msg-who">${role==='user'?'You':'Knowledge Agent'}</div><div class="msg-text">${isTyping?'<div class="dots"><span></span><span></span><span></span></div> Routing and retrieving...':htmlEsc(text)}</div></div>`;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
   return div;
 }
-
 function htmlEsc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
 function showRoute(intent, process, chunks, isGap, gapReason){
   const panel = document.getElementById('routePanel');
   panel.classList.add('show');
-  document.getElementById('rProcess').textContent = process || 'universal';
-  document.getElementById('rIntent').textContent  = intent  || 'undetected';
+  document.getElementById('rProcess').textContent = process||'universal';
+  document.getElementById('rIntent').textContent = intent||'undetected';
   const gapEl = document.getElementById('rGap');
-  if(isGap){
-    gapEl.innerHTML = `<span style="color:var(--red)">⚠ ${gapReason||'gap'}</span>`;
-  } else if(gapReason === 'no_process_match'){
-    gapEl.innerHTML = `<span style="color:var(--gold)">routing miss</span>`;
-  } else {
-    gapEl.innerHTML = `<span style="color:var(--green)">✓ hit</span>`;
-  }
-  document.getElementById('rChunks').innerHTML = chunks.map(c =>
-    `<span class="chunk-pill">${c.chunk_id}</span>`).join('');
+  if(isGap){ gapEl.innerHTML=`<span style="color:var(--intent-fix)">⚠ ${gapReason||'gap'}</span>`; }
+  else if(gapReason==='no_process_match'){ gapEl.innerHTML=`<span style="color:var(--intent-con)">routing miss</span>`; }
+  else { gapEl.innerHTML=`<span style="color:var(--green)">✓ hit</span>`; }
+  document.getElementById('rChunks').innerHTML = chunks.map(c=>`<span class="chunk-pill">${c.chunk_id}</span>`).join('');
 }
-
 function resetChat(){
   const m = document.getElementById('messages');
-  m.innerHTML = `<div class="empty" id="emptyState">
-    <div class="empty-orb">🗂️</div>
-    <h3>Ask anything across the knowledge base</h3>
-    <p>Questions are routed by process and intent before retrieval.</p>
-    <div class="empty-chips" id="emptyChips"></div>
-  </div>`;
-  const prompts = DOCS.slice(0,4).map(doc => `How do I create a ${doc.process.toLowerCase().replace(/-/g,' ')}?`);
+  m.innerHTML = `<div class="empty" id="emptyState"><div class="empty-mark">OKA<span>.</span></div><h3>Ask anything across<br>the knowledge base</h3><p>Questions are routed by process and intent before retrieval.</p><div class="empty-chips" id="emptyChips"></div></div>`;
+  const prompts = DOCS.slice(0,4).map(doc=>`How do I create a ${doc.process.toLowerCase().replace(/-/g,' ')}?`);
   const chips = document.getElementById('emptyChips');
-  prompts.forEach(p => {
-    const span = document.createElement('span');
-    span.className = 'empty-chip';
-    span.textContent = p;
-    span.onclick = () => ask(p);
-    chips.appendChild(span);
-  });
+  prompts.forEach(p => { const span=document.createElement('span'); span.className='empty-chip'; span.textContent=p; span.onclick=()=>ask(p); chips.appendChild(span); });
   document.getElementById('routePanel').classList.remove('show');
 }
-
-// ── Send message ──────────────────────────────────────────────────────────
 async function sendMsg(){
   const input = document.getElementById('qInput');
   const query = input.value.trim();
-  if(!query || loading) return;
-
-  loading = true;
-  input.value = '';
-  grow(input);
+  if(!query||loading) return;
+  loading = true; input.value = ''; grow(input);
   document.getElementById('sendBtn').disabled = true;
-
   addMsg('user', query);
-
-  const { chunks, intent, process } = retrieve(query);
-
-  // Calculate gap status before logging (same logic as logQuery)
-  const noChunks     = chunks.length === 0;
-  const processKnown = !!process;
-  const processHasDoc = processKnown && DOCS.some(d => d.process === process);
-  const weakIntent   = chunks.length > 0 && intent && chunks.every(c => c.intent !== intent);
-  const isGap        = noChunks || (processKnown && !processHasDoc);
-  const gapReason    = noChunks ? 'no_chunks'
-                     : (processKnown && !processHasDoc) ? 'no_doc_for_process'
-                     : weakIntent ? 'weak_intent_match'
-                     : !processKnown && chunks.length > 0 ? 'no_process_match'
-                     : null;
-
+  const {chunks, intent, process} = retrieve(query);
+  const noChunks = chunks.length===0, processKnown=!!process;
+  const processHasDoc = processKnown&&DOCS.some(d=>d.process===process);
+  const weakIntent = chunks.length>0&&intent&&chunks.every(c=>c.intent!==intent);
+  const isGap = noChunks||(processKnown&&!processHasDoc);
+  const gapReason = noChunks?'no_chunks':(processKnown&&!processHasDoc)?'no_doc_for_process':weakIntent?'weak_intent_match':!processKnown&&chunks.length>0?'no_process_match':null;
   showRoute(intent, process, chunks, isGap, gapReason);
   logQuery(query, intent, process, chunks);
-
   const typingEl = addMsg('bot', '', true);
-
-  if(noChunks){
-    typingEl.remove();
-    addMsg('bot', `No relevant content found for this query. The process "${process||'unknown'}" may not have a How-To document yet. Check the Editor to add one.`);
-    loading = false;
-    document.getElementById('sendBtn').disabled = false;
-    return;
-  }
-
-  // If process known but no doc — still answer from fallback chunks but flag it
-  const context  = buildContext(chunks);
-  const contract = intent ? (CONTRACTS[intent] || '') : '';
-  const gapNote  = (processKnown && !processHasDoc)
-    ? `Note: The process "${process}" has been identified but no dedicated How-To document exists yet. Answer from related context only and note the gap clearly.`
-    : '';
+  if(noChunks){ typingEl.remove(); addMsg('bot',`No relevant content found for this query. The process "${process||'unknown'}" may not have a How-To document yet. Check the Editor to add one.`); loading=false; document.getElementById('sendBtn').disabled=false; return; }
+  const context = buildContext(chunks);
+  const contract = intent?(CONTRACTS[intent]||''):'';
+  const gapNote = (processKnown&&!processHasDoc)?`Note: The process "${process}" has been identified but no dedicated How-To document exists yet. Answer from related context only and note the gap clearly.`:'';
   const system = `You are a precise operational knowledge assistant for an Enterprise Asset Management system. Answer based ONLY on the provided context. Do not add information not present in the context. ${contract} ${gapNote}`;
-
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:700,
-        system,
-        messages:[{role:'user', content:`Context:\n${context}\n\nQuestion: ${query}`}]
-      })
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,system,messages:[{role:'user',content:`Context:\n${context}\n\nQuestion: ${query}`}]})
     });
     const data = await res.json();
-    const answer = data.content?.[0]?.text || 'No response received.';
-    typingEl.remove();
-    addMsg('bot', answer);
-  } catch(err){
-    typingEl.remove();
-    addMsg('bot', `⚠️ Could not reach the API. Check your key and internet connection.\n\nError: ${err.message}`);
-  }
-
-  loading = false;
-  document.getElementById('sendBtn').disabled = false;
+    const answer = data.content?.[0]?.text||'No response received.';
+    typingEl.remove(); addMsg('bot', answer);
+  } catch(err){ typingEl.remove(); addMsg('bot',`⚠️ Could not reach the API. Check your key and internet connection.\n\nError: ${err.message}`); }
+  loading = false; document.getElementById('sendBtn').disabled = false;
 }
-
-// ── Start ─────────────────────────────────────────────────────────────────
 async function startApp(){
   const key = document.getElementById('apiKeyInput').value.trim();
-  if(!key || !key.startsWith('sk-')){
-    alert('Please enter a valid Anthropic API key starting with sk-');
-    return;
-  }
+  if(!key||!key.startsWith('sk-')){ alert('Please enter a valid Anthropic API key starting with sk-'); return; }
   API_KEY = key;
   document.getElementById('loadingMsg').style.display = 'block';
-
   const ok = await loadCorpus();
-  if(!ok || CORPUS.length === 0){
-    document.getElementById('loadingMsg').textContent =
-      '⚠️ Could not load knowledge base. Make sure manifest.json and JSON files are in knowledge_base/';
-    return;
-  }
-
+  if(!ok||CORPUS.length===0){ document.getElementById('loadingMsg').textContent='⚠️ Could not load knowledge base. Make sure manifest.json and JSON files are in knowledge_base/'; return; }
   document.getElementById('apiScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   buildSidebar();
