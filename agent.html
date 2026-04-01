@@ -794,42 +794,52 @@ function buildSidebar(){
     btn.onclick = () => setProcess(proc, btn);
     filter.appendChild(btn);
   });
-  const prompts = [];
+
+  window._allPrompts = [];
   DOCS.forEach(doc => {
     const docChunks = CORPUS.filter(c => c.doc_id === doc.doc_id);
     const intents = new Set(docChunks.map(c=>c.intent));
     const proc = doc.process.toLowerCase().replace(/-/g,' ');
-    if(intents.has('DO'))         prompts.push({intent:'DO',   tag:'itag-do',  text:`How do I create a ${proc}?`});
-    if(intents.has('FIX'))        prompts.push({intent:'FIX',  tag:'itag-fix', text:`Something is not working in ${proc}`});
-    if(intents.has('CONSTRAINT')) prompts.push({intent:'CONSTRAINT',tag:'itag-con',text:`Critical rules for ${proc}`});
-    if(intents.has('CHECK'))      prompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`});
-    if(intents.has('LEARN'))      prompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`});
+    if(intents.has('DO'))         window._allPrompts.push({intent:'DO',   tag:'itag-do',  text:`How do I create a ${proc}?`, proc:doc.process});
+    if(intents.has('FIX'))        window._allPrompts.push({intent:'FIX',  tag:'itag-fix', text:`Something is not working in ${proc}`, proc:doc.process});
+    if(intents.has('CONSTRAINT')) window._allPrompts.push({intent:'CONSTRAINT',tag:'itag-con',text:`Critical rules for ${proc}`, proc:doc.process});
+    if(intents.has('CHECK'))      window._allPrompts.push({intent:'CHECK',tag:'itag-chk', text:`What do I need before starting ${proc}?`, proc:doc.process});
+    if(intents.has('LEARN'))      window._allPrompts.push({intent:'LEARN',tag:'itag-lrn', text:`What is a ${proc}?`, proc:doc.process});
   });
+
+  renderPromptList('all');
+
+  const chips = document.getElementById('emptyChips');
+  chips.innerHTML = '';
+  window._allPrompts.slice(0,4).forEach(p => {
+    const span = document.createElement('span');
+    span.className = 'empty-chip'; span.textContent = p.text;
+    span.onclick = () => ask(p.text);
+    chips.appendChild(span);
+  });
+
+  const processes2 = [...new Set(CORPUS.map(c=>c.process))];
+  document.getElementById('topbarSub').textContent = `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
+  document.getElementById('corpusPill').textContent = `${CORPUS.length} chunks`;
+}
+
+function renderPromptList(proc){
   const list = document.getElementById('promptList');
   list.innerHTML = '';
-  prompts.slice(0,12).forEach(p => {
+  const filtered = proc === 'all' ? window._allPrompts : window._allPrompts.filter(p => p.proc === proc);
+  filtered.slice(0,15).forEach(p => {
     const btn = document.createElement('button');
     btn.className = 'prompt-chip';
     btn.innerHTML = `<span class="itag ${p.tag}">${p.intent}</span>${p.text}`;
     btn.onclick = () => ask(p.text);
     list.appendChild(btn);
   });
-  const chips = document.getElementById('emptyChips');
-  chips.innerHTML = '';
-  prompts.slice(0,4).forEach(p => {
-    const span = document.createElement('span');
-    span.className = 'empty-chip'; span.textContent = p.text;
-    span.onclick = () => ask(p.text);
-    chips.appendChild(span);
-  });
-  const processes2 = [...new Set(CORPUS.map(c=>c.process))];
-  document.getElementById('topbarSub').textContent = `${processes2.join(' · ')} · ${CORPUS.length} chunks · 5-map RAG`;
-  document.getElementById('corpusPill').textContent = `${CORPUS.length} chunks`;
 }
 function setProcess(proc, btn){
   activeProcess = proc;
   document.querySelectorAll('.proc-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  renderPromptList(proc);
 }
 function grow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
