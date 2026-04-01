@@ -387,6 +387,15 @@ function logQuery(query, intent, process, chunks){
     localStorage.setItem(LOG_KEY, JSON.stringify(stored));
   } catch(e){ console.warn('Log save failed:', e); }
   if(isGap) updateGapBanner();
+  // POST to Google Sheets (fire and forget)
+  if(SHEETS_URL && SHEETS_URL !== 'YOUR_WEB_APP_URL_HERE') {
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(entry)
+    }).catch(e => console.warn('Sheets log failed:', e));
+  }
 }
 
 function updateGapBanner(){
