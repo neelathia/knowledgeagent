@@ -489,7 +489,19 @@ async function callClaude(system, userMsg, maxTokens=6000) {
 
 function parseJSON(text) {
   const clean = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-  return JSON.parse(clean);
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    // Try to salvage partial JSON by finding the last complete process entry
+    const lastBrace = clean.lastIndexOf('}\n    }');
+    if (lastBrace > 0) {
+      try {
+        const salvaged = clean.slice(0, lastBrace) + '}\n    }\n  }\n}';
+        return JSON.parse(salvaged);
+      } catch(e2) {}
+    }
+    throw new Error(`Response truncated or invalid JSON. Try a shorter document section. Detail: ${e.message}`);
+  }
 }
 
 async function runDiscovery() {
@@ -507,10 +519,10 @@ async function runDiscovery() {
 
   log('info', `Document type: ${docTypeLabels[selectedDocType]}`);
   log('info', `Priority layers for this document type: ${focusLayers.join(', ').toUpperCase()}`);
-  log('info', `Source: ${(sourceText.length/1000).toFixed(1)}k chars — truncating to 45k for extraction`);
+  log('info', `Source: ${(sourceText.length/1000).toFixed(1)}k chars — truncating to 25k for extraction`);
 
   try {
-    const truncated = sourceText.slice(0, 45000);
+    const truncated = sourceText.slice(0, 25000);
     const userMsg = `Document type: ${docTypeLabels[selectedDocType]}\nPriority layers to extract: ${focusLayers.join(', ')}\n\nDocument content:\n\n${truncated}`;
 
     log('info', 'Calling Claude API for six-layer discovery scan...');
