@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OKA — Discovery Pipeline · Neela Thiagarajan</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#000;--surface:#0a0a0a;--surface-2:#111;--surface-3:#191919;
+  --border:#1e1e1e;--border-light:#2a2a2a;--white:#fff;
+  --text:#e8e8e8;--text-dim:#888;--text-muted:#444;
+  --green:#00ff88;--green-dim:rgba(0,255,136,.08);
+  --amber:#ffb84d;--red:#ff4d4d;--blue:#4d9fff;--purple:#c084fc;
+  --l1:#4d9fff;--l2:#00ff88;--l3:#c084fc;--l4:#ffb84d;--l5:#fb923c;--l6:#e8e8e8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:999;}
+body{background:var(--black);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.92);backdrop-filter:blur(20px);flex-shrink:0;position:sticky;top:0;z-index:10;}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+.topbar-logo{font-family:'Poppins',sans-serif;font-size:15px;font-weight:800;color:var(--white);letter-spacing:-.01em;display:flex;align-items:center;gap:3px;}
+.topbar-logo span{color:var(--green);}
+.topbar-divider{width:1px;height:20px;background:var(--border-light);}
+.topbar-info .topbar-title{font-size:13px;color:var(--text-dim);}
+.topbar-info .topbar-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.nav-link{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:6px;transition:all .2s;letter-spacing:.04em;text-transform:uppercase;}
+.nav-link:hover{color:var(--white);border-color:var(--border-light);}
+.pill{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:100px;border:1px solid;}
+.pill-green{color:var(--green);border-color:rgba(0,255,136,.2);background:var(--green-dim);}
+.pill-amber{color:var(--amber);border-color:rgba(255,184,77,.2);background:rgba(255,184,77,.06);}
+
+/* SETUP */
+#setupScreen{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+.setup-card{max-width:560px;width:100%;}
+.setup-logo{font-family:'Poppins',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:48px;display:flex;align-items:center;gap:6px;}
+.setup-logo span{color:var(--green);}
+.setup-headline{font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;color:var(--white);line-height:1.1;letter-spacing:-.01em;margin-bottom:10px;}
+.setup-headline em{font-style:normal;color:var(--green);}
+.setup-sub{font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:32px;}
+.field-group{margin-bottom:16px;}
+.field-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:block;}
+.field-input{width:100%;background:var(--surface-2);border:1px solid var(--border-light);border-radius:8px;padding:12px 16px;color:var(--white);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;}
+.field-input:focus{border-color:rgba(0,255,136,.4);}
+.field-input::placeholder{color:var(--text-muted);}
+.btn-start{width:100%;background:var(--white);color:var(--black);border:none;border-radius:8px;padding:14px;font-family:'Poppins',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;margin-top:8px;}
+.btn-start:hover{background:var(--green);transform:translateY(-1px);}
+.setup-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:12px;line-height:1.6;}
+
+/* APP */
+#app{display:none;flex:1;flex-direction:column;}
+
+/* MAIN LAYOUT */
+.main-wrap{flex:1;display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 56px);}
+
+/* LEFT */
+.left-panel{border-right:1px solid var(--border);display:flex;flex-direction:column;background:rgba(0,0,0,.5);}
+.panel-section{padding:20px 20px 0;}
+.panel-section-last{padding:20px;}
+.section-label{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Upload */
+.upload-zone{border:1px dashed var(--border-light);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.drag{border-color:rgba(0,255,136,.4);background:var(--green-dim);}
+.upload-zone.has-file{border-color:rgba(0,255,136,.3);border-style:solid;background:rgba(0,255,136,.04);}
+.upload-icon{font-size:22px;margin-bottom:6px;opacity:.4;}
+.upload-title{font-size:13px;color:var(--text-dim);margin-bottom:3px;}
+.upload-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);}
+.upload-file-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);margin-top:6px;}
+#fileInput{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* Doc type selector */
+.doc-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;}
+.doc-type-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all .18s;text-align:center;letter-spacing:.04em;}
+.doc-type-btn:hover{border-color:var(--border-light);color:var(--text-dim);}
+.doc-type-btn.selected{border-color:rgba(0,255,136,.3);background:var(--green-dim);color:var(--green);}
+
+/* Run history */
+.run-list{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;max-height:160px;overflow-y:auto;}
+.run-list::-webkit-scrollbar{width:2px;}
+.run-list::-webkit-scrollbar-thumb{background:var(--border-light);}
+.run-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);font-size:11px;color:var(--text-dim);cursor:pointer;transition:all .15s;}
+.run-item:hover{border-color:var(--border-light);color:var(--text);}
+.run-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.run-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-left:auto;}
+
+/* Buttons */
+.btn-discover{width:100%;background:var(--green);color:var(--black);border:none;border-radius:8px;padding:13px;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-discover:hover{transform:translateY(-1px);background:#00e87a;}
+.btn-discover:disabled{background:var(--surface-3);color:var(--text-muted);cursor:not-allowed;transform:none;}
+.btn-merge{width:100%;background:var(--white);color:var(--black);border:none;border-radius:8px;padding:13px;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;margin-top:8px;display:none;}
+.btn-merge:hover{background:var(--green);transform:translateY(-1px);}
+.btn-merge.show{display:block;}
+.btn-merge:disabled{background:var(--surface-3);color:var(--text-muted);cursor:not-allowed;transform:none;}
+.btn-render{width:100%;background:transparent;color:var(--green);border:1px solid rgba(0,255,136,.3);border-radius:8px;padding:11px;font-family:'Poppins',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;margin-top:8px;display:none;}
+.btn-render:hover{background:var(--green-dim);}
+.btn-render.show{display:block;}
+
+/* RIGHT */
+.right-panel{display:flex;flex-direction:column;overflow:hidden;}
+.right-top{padding:24px 28px 0;border-bottom:1px solid var(--border);}
+.right-title{font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;color:var(--white);margin-bottom:4px;}
+.right-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:20px;}
+.tab-bar{display:flex;gap:2px;}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;border:1px solid transparent;border-bottom:none;color:var(--text-muted);}
+.tab:hover{color:var(--text-dim);background:var(--surface-2);}
+.tab.active{color:var(--white);background:var(--surface-2);border-color:var(--border);}
+
+.content-area{flex:1;overflow-y:auto;padding:24px 28px;}
+.content-area::-webkit-scrollbar{width:2px;}
+.content-area::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px;}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 40px;gap:16px;}
+.empty-icon{width:56px;height:56px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.6;}
+.empty-state h3{font-family:'Poppins',sans-serif;font-size:18px;font-weight:700;color:var(--white);}
+.empty-state p{font-size:13px;color:var(--text-muted);max-width:320px;line-height:1.7;}
+
+/* COVERAGE MATRIX */
+.matrix-wrap{overflow-x:auto;}
+.matrix-table{width:100%;border-collapse:collapse;font-size:11px;}
+.matrix-table th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.matrix-table th.layer-h{text-align:center;padding:8px 6px;}
+.matrix-table td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.matrix-table tr:hover td{background:var(--surface-2);}
+.proc-name{font-size:12px;color:var(--text);font-weight:500;cursor:pointer;}
+.proc-name:hover{color:var(--green);}
+.proc-ws{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);}
+.layer-cell{text-align:center;padding:7px 6px;}
+.lcell{width:28px;height:22px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8px;font-weight:600;cursor:pointer;transition:all .15s;}
+.lcell:hover{transform:scale(1.1);}
+.lcell.full{color:#000;}
+.lcell.partial{color:#000;}
+.lcell.gap{background:rgba(255,77,77,.08);color:var(--red);border:1px solid rgba(255,77,77,.15);}
+.lcell.na{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+
+/* PROCESS DETAIL */
+.proc-detail{display:flex;flex-direction:column;gap:16px;}
+.detail-header{margin-bottom:4px;}
+.detail-ws{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:6px;}
+.detail-title{font-family:'Poppins',sans-serif;font-size:20px;font-weight:800;color:var(--white);}
+.layer-blocks{display:flex;flex-direction:column;gap:10px;}
+.layer-block{border-radius:10px;border:1px solid;padding:14px 16px;}
+.layer-block.full{border-color:rgba(0,255,136,.2);background:rgba(0,255,136,.04);}
+.layer-block.partial{border-color:rgba(255,184,77,.2);background:rgba(255,184,77,.04);}
+.layer-block.gap{border-color:rgba(255,77,77,.15);background:rgba(255,77,77,.04);}
+.layer-block-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.layer-num{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.layer-name{font-size:12px;font-weight:500;color:var(--white);}
+.layer-status{font-family:'DM Mono',monospace;font-size:9px;margin-left:auto;}
+.layer-content{font-size:12px;color:var(--text-dim);line-height:1.65;}
+.layer-content .field{display:inline-block;background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);margin:2px 2px 2px 0;}
+.gap-rec{font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);margin-top:6px;}
+
+/* GAP REPORT */
+.gap-report{display:flex;flex-direction:column;gap:12px;}
+.gap-card{background:var(--surface-2);border:1px solid rgba(255,184,77,.12);border-radius:10px;padding:14px 16px;}
+.gap-card-title{font-size:13px;font-weight:500;color:var(--white);margin-bottom:4px;}
+.gap-card-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:8px;}
+.gap-layers{display:flex;gap:6px;flex-wrap:wrap;}
+.gap-layer-pill{font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid rgba(255,77,77,.2);background:rgba(255,77,77,.06);color:var(--red);}
+.gap-rec-pill{font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid rgba(255,184,77,.2);background:rgba(255,184,77,.06);color:var(--amber);}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:10px;margin-bottom:20px;}
+.stat-card{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+.stat-value{font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.stat-card.blue .stat-value{color:var(--blue);}
+.stat-card.green .stat-value{color:var(--green);}
+.stat-card.amber .stat-value{color:var(--amber);}
+.stat-card.red .stat-value{color:var(--red);}
+
+/* LOG */
+.log-area{background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.8;color:var(--text-dim);min-height:200px;max-height:calc(100vh - 200px);overflow-y:auto;}
+.log-area::-webkit-scrollbar{width:2px;}
+.log-area::-webkit-scrollbar-thumb{background:var(--border-light);}
+.log-line.info{color:var(--text-dim);}
+.log-line.success{color:var(--green);}
+.log-line.warn{color:var(--amber);}
+.log-line.error{color:var(--red);}
+.log-ts{color:var(--text-muted);margin-right:8px;}
+
+/* RENDER MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
+.modal{background:var(--surface-2);border:1px solid var(--border-light);border-radius:12px;padding:28px;width:100%;max-width:520px;}
+.modal h3{font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
+.proc-select-list{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto;margin-bottom:20px;}
+.proc-select-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--surface-3);border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+.proc-select-item:hover{border-color:var(--border-light);}
+.proc-select-item.selected{border-color:rgba(0,255,136,.3);background:var(--green-dim);}
+.proc-select-item input{accent-color:var(--green);}
+.proc-select-label{font-size:12px;color:var(--text);}
+.proc-select-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-left:auto;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+.modal-cancel{background:transparent;border:1px solid var(--border-light);border-radius:8px;padding:9px 18px;color:var(--text-dim);font-size:13px;cursor:pointer;}
+.modal-confirm{background:var(--white);border:none;border-radius:8px;padding:9px 20px;color:var(--black);font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.modal-confirm:hover{background:var(--green);}
+
+/* Workstream section headers in matrix */
+.ws-header td{background:var(--surface-3);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);padding:6px 12px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">OKA<span>.</span></div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-info">
+      <div class="topbar-title">Knowledge Discovery Pipeline</div>
+      <div class="topbar-sub">Document → Six-Layer Registry → Coverage Matrix</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-green" id="statusPill">● Ready</span>
+    <a href="agent.html" class="nav-link">Agent →</a>
+    <a href="index.html" class="nav-link">Editor →</a>
+    <a href="knowledge_graph.html" class="nav-link">Graph →</a>
+    <a href="ingest.html" class="nav-link">Ingest →</a>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">OKA<span>.</span></div>
+    <div class="setup-headline">Knowledge<br><em>Discovery</em> Pipeline</div>
+    <div class="setup-sub">Upload any project document. The pipeline scans through all six OKA layers, identifies every process, maps what each layer contributes, and builds a growing master registry. Each document run enriches the same registry.</div>
+    <div class="field-group">
+      <label class="field-label">Anthropic API Key</label>
+      <input type="password" class="field-input" id="apiKeyInput" placeholder="sk-ant-api03-..."/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">GitHub Personal Access Token (repo write)</label>
+      <input type="password" class="field-input" id="githubTokenInput" placeholder="github_pat_..."/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">GitHub Repo (owner/repo)</label>
+      <input type="text" class="field-input" id="repoInput" placeholder="neelathia/knowledgeagent" value="neelathia/knowledgeagent"/>
+    </div>
+    <button class="btn-start" onclick="startApp()">Start Discovery Pipeline →</button>
+    <div class="setup-note">🔒 Keys stored in session memory only. Never logged, never sent anywhere except Anthropic and GitHub APIs directly.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="main-wrap">
+
+    <!-- LEFT -->
+    <div class="left-panel">
+      <div class="panel-section">
+        <div class="section-label">Source document</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" accept=".txt,.md,.docx,.pdf,.xlsx,.xlsm" onchange="handleFile(this)"/>
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">Drop document here</div>
+          <div class="upload-sub">.txt · .md · .docx · .pdf · .xlsx</div>
+          <div class="upload-file-name" id="uploadFileName"></div>
+        </div>
+
+        <div class="section-label">Document type</div>
+        <div class="doc-type-grid" id="docTypeGrid">
+          <div class="doc-type-btn selected" onclick="selectDocType(this,'blueprint')">Blueprint</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'config-matrix')">Config Matrix</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'tar-doc')">TAR / EINI</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'transcript')">Transcript</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'howto')">How-To Doc</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'rtm')">RTM</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-label">Run history</div>
+        <div class="run-list" id="runList">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);padding:4px 0">No runs yet</div>
+        </div>
+      </div>
+
+      <div class="panel-section-last" style="margin-top:auto;">
+        <button class="btn-discover" id="btnDiscover" onclick="runDiscovery()" disabled>Discover Layers</button>
+        <button class="btn-merge show" id="btnMerge" onclick="mergeToRegistry()" disabled>Merge to Registry</button>
+        <button class="btn-render show" id="btnRender" onclick="showRenderModal()">Render How-Tos →</button>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-panel">
+      <div class="right-top">
+        <div class="right-title" id="rightTitle">Discovery Pipeline</div>
+        <div class="right-sub" id="rightSub">Upload a document and select its type to begin layer discovery</div>
+        <div class="tab-bar">
+          <div class="tab active" onclick="showTab('matrix')" id="tab-matrix">Coverage Matrix</div>
+          <div class="tab" onclick="showTab('gaps')" id="tab-gaps">Gap Report</div>
+          <div class="tab" onclick="showTab('detail')" id="tab-detail">Process Detail</div>
+          <div class="tab" onclick="showTab('log')" id="tab-log">Log</div>
+        </div>
+      </div>
+      <div class="content-area" id="contentArea">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>Ready to discover</h3>
+          <p>Upload any TTX project document. The pipeline will scan all six OKA layers and map which processes and layer content it finds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RENDER MODAL -->
+<div class="modal-overlay" id="renderModal" style="display:none">
+  <div class="modal">
+    <h3>Render How-To Documents</h3>
+    <p>Select processes with sufficient L2 + L6 coverage to render full How-To JSON and publish to the knowledge base.</p>
+    <div class="proc-select-list" id="procSelectList"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeRenderModal()">Cancel</button>
+      <button class="modal-confirm" onclick="renderSelected()">Render & Publish →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let API_KEY = '';
+let GITHUB_TOKEN = '';
+let GITHUB_REPO = '';
+let sourceText = '';
+let selectedDocType = 'blueprint';
+let discoveryResult = null;
+let registry = null;
+let pipelineLog = [];
+let activeTab = 'matrix';
+let selectedProcess = null;
+let runHistory = [];
+
+// Layer metadata
+const LAYERS = [
+  {id:'l1', name:'Business', color:'var(--l1)', fields:['business_capability','business_outcome','actors','goal']},
+  {id:'l2', name:'Process', color:'var(--l2)', fields:['main_path','decisions','oklm','variants','constraints']},
+  {id:'l3', name:'System', color:'var(--l3)', fields:['screen','system','navigation','action_type','role']},
+  {id:'l4', name:'Data', color:'var(--l4)', fields:['fields','valid_values','states','triggers','formulas']},
+  {id:'l5', name:'Integration', color:'var(--l5)', fields:['source_system','target_system','trigger_event','data_passed','failure_modes']},
+  {id:'l6', name:'Content', color:'var(--l6)', fields:['overview','prerequisites','steps','rules','troubleshoot']}
+];
+
+const DOC_TYPE_LAYER_FOCUS = {
+  'blueprint': ['l1','l2'],
+  'config-matrix': ['l3','l4'],
+  'tar-doc': ['l5'],
+  'transcript': ['l2','l3','l4'],
+  'howto': ['l6'],
+  'rtm': ['l1','l2','l4']
+};
+
+const DISCOVERY_SYSTEM_PROMPT = `You are an OKA (Operational Knowledge Architecture) layer extraction specialist.
+
+Your task: read the provided document and extract knowledge across all six OKA layers for every TTX railcar process you find.
+
+THE SIX OKA LAYERS:
+- L1 Business: business_capability, business_outcome, actors, goal, business_trigger
+- L2 Process: main_path (array of steps), decisions (IF/THEN logic), variants (alternative flows), dependencies, oklm_elements (dependency/process/sequential/decision/validation/exception logic)
+- L3 System: system_name, module, screen_name, navigation_path, action_type, role_required
+- L4 Data: fields (array of field names), valid_values (field→values map), states (status codes), state_transitions, triggers, formulas
+- L5 Integration: source_system, target_system, trigger_event, data_passed, transformation_rules, timing, failure_modes, recovery_actions
+- L6 Content: overview, when_to_use, prerequisites, steps_narrative, rules_narrative, troubleshoot_narrative, verification
+
+EXTRACTION RULES:
+1. Extract ONLY what is explicitly stated. Do not infer.
+2. For each layer, if content exists: populate the fields. If no content exists: set to null.
+3. Mark confidence: "high" (directly stated), "medium" (implied), "low" (inferred).
+4. Track source: which section/page the content came from.
+5. Flag gaps: what is missing and which document type would fill it.
+
+KNOWN TTX PROCESSES (use these IDs if you find them):
+Car Acquisition: CAR-ACQ-01 Equipment Category, CAR-ACQ-02 Car Initial/Class Config, CAR-ACQ-03 Unit/Rack Config, CAR-ACQ-04 Component Config, CAR-ACQ-05 Config Association, CAR-ACQ-06 Equipment Generation
+Car Operations: CAR-OPS-01 Car Activation, CAR-OPS-02 Weight Update, CAR-OPS-03 ILS, CAR-OPS-04 Equip Car, CAR-OPS-05 De-Equip Car, CAR-OPS-06 Car ID Update, CAR-OPS-07 Audit & Event History, CAR-OPS-08 Change Specification, CAR-OPS-09 Dataspy
+Car Maintenance: CAR-MNT-01 Trade, CAR-MNT-02 Billing Relief Code, CAR-MNT-03 Task Plan, CAR-MNT-04 Work Order, CAR-MNT-05 PM Schedule Calendar/Mileage, CAR-MNT-06 PM Schedule Wear-based, CAR-MNT-07 Car Health, CAR-MNT-08 WO Priority Escalation, CAR-MNT-09 Car Selection Criteria, CAR-MNT-10 WGC Campaigns
+Car End of Life: CAR-EOL-01 Sell Car, CAR-EOL-02 Scrap Car, CAR-EOL-03 Destroy Car, CAR-EOL-04 Lease Return Car
+
+OUTPUT FORMAT — respond with ONLY a JSON object, no other text:
+{
+  "document_type": "string",
+  "document_name": "string",
+  "scan_date": "YYYY-MM-DD",
+  "processes_found": ["list of process IDs found in this document"],
+  "contributions": {
+    "PROCESS-ID": {
+      "process_name": "string",
+      "workstream": "string",
+      "l1": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" },
+      "l2": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" },
+      "l3": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" },
+      "l4": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" },
+      "l5": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" },
+      "l6": { "status": "full|partial|gap", "confidence": "high|medium|low", "content": {...}, "gaps": [], "recommended_source": "string" }
+    }
+  }
+}`;
+
+function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const token = document.getElementById('githubTokenInput').value.trim();
+  const repo = document.getElementById('repoInput').value.trim();
+  if (!key || !key.startsWith('sk-')) { alert('Please enter a valid Anthropic API key'); return; }
+  if (!token) { alert('Please enter your GitHub personal access token'); return; }
+  if (!repo) { alert('Please enter your GitHub repo'); return; }
+  API_KEY = key; GITHUB_TOKEN = token; GITHUB_REPO = repo;
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadRegistryFromGitHub();
+}
+
+async function loadRegistryFromGitHub() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/knowledge_base/registry.json`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      registry = JSON.parse(atob(data.content.replace(/\n/g, '')));
+      log('success', `Registry loaded — ${Object.keys(registry.processes||{}).length} processes tracked`);
+      renderTab();
+    } else {
+      log('info', 'No registry found on GitHub — will create on first merge');
+      registry = { version: '1.0', created: new Date().toISOString().split('T')[0], processes: {}, run_history: [] };
+    }
+  } catch(e) {
+    log('warn', `Registry load failed: ${e.message}`);
+    registry = { version: '1.0', created: new Date().toISOString().split('T')[0], processes: {}, run_history: [] };
+  }
+}
+
+function selectDocType(btn, type) {
+  document.querySelectorAll('.doc-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedDocType = type;
+  checkReady();
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const zone = document.getElementById('uploadZone');
+  zone.classList.add('has-file');
+  document.getElementById('uploadFileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    sourceText = e.target.result;
+    log('info', `Loaded: ${file.name} (${(sourceText.length/1000).toFixed(1)}k chars)`);
+    checkReady();
+  };
+  reader.readAsText(file);
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    handleFile(document.getElementById('fileInput'));
+  }
+});
+
+function checkReady() {
+  document.getElementById('btnDiscover').disabled = sourceText.length === 0;
+}
+
+async function callClaude(system, userMsg, maxTokens=6000) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-api-key':API_KEY, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:maxTokens, system, messages:[{role:'user',content:userMsg}] })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.[0]?.text || '';
+}
+
+function parseJSON(text) {
+  const clean = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  return JSON.parse(clean);
+}
+
+async function runDiscovery() {
+  document.getElementById('btnDiscover').disabled = true;
+  document.getElementById('btnMerge').disabled = true;
+  pipelineLog = [];
+  discoveryResult = null;
+
+  document.getElementById('statusPill').textContent = '⟳ Scanning';
+  document.getElementById('statusPill').style.color = 'var(--amber)';
+  showTab('log');
+
+  const docTypeLabels = {'blueprint':'Business Blueprint','config-matrix':'Configuration Matrix','tar-doc':'TAR / EINI / EINO','transcript':'E2E Transcript','howto':'How-To Document','rtm':'Requirements Traceability Matrix'};
+  const focusLayers = DOC_TYPE_LAYER_FOCUS[selectedDocType] || ['l1','l2','l3','l4','l5','l6'];
+
+  log('info', `Document type: ${docTypeLabels[selectedDocType]}`);
+  log('info', `Priority layers for this document type: ${focusLayers.join(', ').toUpperCase()}`);
+  log('info', `Source: ${(sourceText.length/1000).toFixed(1)}k chars — truncating to 45k for extraction`);
+
+  try {
+    const truncated = sourceText.slice(0, 45000);
+    const userMsg = `Document type: ${docTypeLabels[selectedDocType]}\nPriority layers to extract: ${focusLayers.join(', ')}\n\nDocument content:\n\n${truncated}`;
+
+    log('info', 'Calling Claude API for six-layer discovery scan...');
+    const response = await callClaude(DISCOVERY_SYSTEM_PROMPT, userMsg, 8000);
+    log('info', 'Parsing discovery results...');
+
+    discoveryResult = parseJSON(response);
+    const procCount = Object.keys(discoveryResult.contributions || {}).length;
+    log('success', `Discovery complete — ${procCount} processes found`);
+
+    Object.entries(discoveryResult.contributions || {}).forEach(([id, proc]) => {
+      const layers = ['l1','l2','l3','l4','l5','l6'];
+      const full = layers.filter(l => proc[l]?.status === 'full').length;
+      const partial = layers.filter(l => proc[l]?.status === 'partial').length;
+      const gaps = layers.filter(l => proc[l]?.status === 'gap').length;
+      log('info', `  ${id} — ${proc.process_name}: ${full} full, ${partial} partial, ${gaps} gaps`);
+    });
+
+    document.getElementById('statusPill').textContent = `✓ ${procCount} processes`;
+    document.getElementById('statusPill').style.color = 'var(--green)';
+    document.getElementById('btnMerge').disabled = false;
+    document.getElementById('rightTitle').textContent = `${docTypeLabels[selectedDocType]} Discovery`;
+    document.getElementById('rightSub').textContent = `${procCount} processes scanned · ${focusLayers.length} priority layers · ready to merge`;
+
+    showTab('matrix');
+
+  } catch(err) {
+    log('error', `Discovery failed: ${err.message}`);
+    document.getElementById('statusPill').textContent = '✗ Error';
+    document.getElementById('statusPill').style.color = 'var(--red)';
+    document.getElementById('btnDiscover').disabled = false;
+  }
+}
+
+async function mergeToRegistry() {
+  if (!discoveryResult) return;
+  document.getElementById('btnMerge').disabled = true;
+  document.getElementById('statusPill').textContent = '⟳ Merging';
+  document.getElementById('statusPill').style.color = 'var(--amber)';
+  showTab('log');
+
+  log('info', 'Merging discovery results into master registry...');
+
+  const contributions = discoveryResult.contributions || {};
+  let updated = 0, created = 0;
+
+  Object.entries(contributions).forEach(([procId, contribution]) => {
+    if (!registry.processes[procId]) {
+      registry.processes[procId] = { process_id: procId, process_name: contribution.process_name, workstream: contribution.workstream, layers: {} };
+      created++;
+    }
+    ['l1','l2','l3','l4','l5','l6'].forEach(layer => {
+      const incoming = contribution[layer];
+      if (!incoming) return;
+      const existing = registry.processes[procId].layers[layer];
+      if (!existing || incoming.status === 'full' || (incoming.status === 'partial' && existing.status === 'gap')) {
+        registry.processes[procId].layers[layer] = {
+          status: incoming.status,
+          confidence: incoming.confidence,
+          content: incoming.content,
+          gaps: incoming.gaps || [],
+          recommended_source: incoming.recommended_source || '',
+          source_doc: discoveryResult.document_name,
+          source_type: selectedDocType,
+          last_updated: new Date().toISOString().split('T')[0]
+        };
+        updated++;
+      }
+    });
+  });
+
+  registry.run_history = registry.run_history || [];
+  registry.run_history.push({ date: new Date().toISOString(), doc_type: selectedDocType, doc_name: discoveryResult.document_name, processes_touched: Object.keys(contributions).length });
+  registry.last_updated = new Date().toISOString().split('T')[0];
+
+  log('info', `Merged: ${created} new processes, ${updated} layer updates`);
+
+  // Write to GitHub
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(registry, null, 2))));
+    const checkRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/knowledge_base/registry.json`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    let sha = null;
+    if (checkRes.ok) { const d = await checkRes.json(); sha = d.sha; }
+
+    const writeRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/knowledge_base/registry.json`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Update registry — ${selectedDocType} scan`, content, ...(sha ? {sha} : {}) })
+    });
+    if (!writeRes.ok) throw new Error('GitHub write failed');
+
+    log('success', `✓ registry.json updated on GitHub — ${Object.keys(registry.processes).length} processes tracked`);
+    document.getElementById('statusPill').textContent = '✓ Merged';
+    document.getElementById('statusPill').style.color = 'var(--green)';
+
+    addRunToHistory(discoveryResult.document_name, selectedDocType, Object.keys(contributions).length);
+    document.getElementById('btnRender').classList.add('show');
+    showTab('matrix');
+
+  } catch(err) {
+    log('error', `Merge failed: ${err.message}`);
+    document.getElementById('btnMerge').disabled = false;
+  }
+}
+
+function addRunToHistory(docName, docType, procCount) {
+  runHistory.push({ docName, docType, procCount, ts: new Date().toTimeString().slice(0,8) });
+  const list = document.getElementById('runList');
+  list.innerHTML = runHistory.map(r => `
+    <div class="run-item">
+      <div class="run-dot" style="background:var(--green)"></div>
+      <div>
+        <div style="font-size:11px;color:var(--text)">${r.docType}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted)">${r.docName?.slice(0,28)||'—'}</div>
+      </div>
+      <div class="run-meta">${r.procCount}p · ${r.ts}</div>
+    </div>`).join('');
+}
+
+function showRenderModal() {
+  const list = document.getElementById('procSelectList');
+  const renderable = Object.entries(registry.processes || {}).filter(([id, proc]) => {
+    const l2 = proc.layers?.l2?.status;
+    const l6 = proc.layers?.l6?.status;
+    return l2 === 'full' || l2 === 'partial';
+  });
+  list.innerHTML = renderable.length === 0
+    ? '<div style="color:var(--text-muted);font-size:12px;padding:8px">No processes have sufficient L2 coverage yet. Run more documents through the pipeline first.</div>'
+    : renderable.map(([id, proc]) => {
+      const l2s = proc.layers?.l2?.status || 'gap';
+      const l6s = proc.layers?.l6?.status || 'gap';
+      return `<div class="proc-select-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=!this.querySelector('input').checked">
+        <input type="checkbox" value="${id}"/>
+        <div class="proc-select-label">${proc.process_name}</div>
+        <div class="proc-select-meta">L2:${l2s} L6:${l6s}</div>
+      </div>`;
+    }).join('');
+  document.getElementById('renderModal').style.display = 'flex';
+}
+
+function closeRenderModal() { document.getElementById('renderModal').style.display = 'none'; }
+
+async function renderSelected() {
+  const selected = [...document.querySelectorAll('#procSelectList input:checked')].map(i => i.value);
+  if (selected.length === 0) { alert('Select at least one process to render'); return; }
+  closeRenderModal();
+  log('info', `Rendering ${selected.length} How-To document(s)...`);
+  showTab('log');
+  // Redirect to ingest with pre-filled data — for now show log message
+  log('warn', 'Render mode: open ingest.html and run targeted extraction for each selected process using the registry content as source material.');
+  selected.forEach(id => {
+    const proc = registry.processes[id];
+    log('info', `  → ${id}: ${proc.process_name} — use registry L2+L4 content as extraction input`);
+  });
+  log('info', 'Full auto-render from registry will be added in next build.');
+}
+
+// TABS
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const area = document.getElementById('contentArea');
+  if (activeTab === 'log') { renderLog(area); return; }
+  if (activeTab === 'matrix') { renderMatrix(area); return; }
+  if (activeTab === 'gaps') { renderGaps(area); return; }
+  if (activeTab === 'detail') { renderDetail(area); return; }
+}
+
+function renderLog(area) {
+  area.innerHTML = `<div class="log-area">${pipelineLog.map(l => `<div class="log-line ${l.type}"><span class="log-ts">${l.ts}</span>${esc(l.msg)}</div>`).join('')}</div>`;
+  area.querySelector('.log-area').scrollTop = 99999;
+}
+
+function renderMatrix(area) {
+  const source = discoveryResult?.contributions || registry?.processes || {};
+  if (Object.keys(source).length === 0) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><h3>No data yet</h3><p>Run a document through the discovery pipeline to populate the coverage matrix.</p></div>`;
+    return;
+  }
+
+  // Build unified process list from registry + current discovery
+  const allProcs = {};
+  Object.entries(registry?.processes || {}).forEach(([id, p]) => allProcs[id] = { ...p, source: 'registry' });
+  if (discoveryResult) {
+    Object.entries(discoveryResult.contributions || {}).forEach(([id, p]) => {
+      if (!allProcs[id]) allProcs[id] = { process_id: id, process_name: p.process_name, workstream: p.workstream, layers: {}, source: 'discovery' };
+      ['l1','l2','l3','l4','l5','l6'].forEach(l => { if (p[l]) allProcs[id].layers[l] = p[l]; });
+    });
+  }
+
+  const totalProcs = Object.keys(allProcs).length;
+  const totalLayers = totalProcs * 6;
+  const fullCount = Object.values(allProcs).reduce((s, p) => s + Object.values(p.layers||{}).filter(l => l.status==='full').length, 0);
+  const partialCount = Object.values(allProcs).reduce((s, p) => s + Object.values(p.layers||{}).filter(l => l.status==='partial').length, 0);
+  const gapCount = totalLayers - fullCount - partialCount;
+
+  const workstreams = {};
+  Object.entries(allProcs).forEach(([id, p]) => {
+    const ws = p.workstream || 'Unknown';
+    if (!workstreams[ws]) workstreams[ws] = [];
+    workstreams[ws].push([id, p]);
+  });
+
+  let rows = '';
+  Object.entries(workstreams).forEach(([ws, procs]) => {
+    rows += `<tr class="ws-header"><td colspan="8">${ws}</td></tr>`;
+    procs.forEach(([id, proc]) => {
+      const layerCells = ['l1','l2','l3','l4','l5','l6'].map((l, i) => {
+        const layer = proc.layers?.[l];
+        const status = layer?.status || 'gap';
+        const color = ['var(--l1)','var(--l2)','var(--l3)','var(--l4)','var(--l5)','var(--l6)'][i];
+        const bg = status === 'full' ? color : status === 'partial' ? color.replace(')',', 0.4)').replace('var','rgba').replace(/--l\d/,'') : '';
+        const style = status === 'full' ? `background:${color};` : status === 'partial' ? `background:${color};opacity:0.45;` : '';
+        const label = status === 'full' ? '✓' : status === 'partial' ? '~' : '✗';
+        const cls = status === 'full' ? 'full' : status === 'partial' ? 'partial' : 'gap';
+        return `<td class="layer-cell"><div class="lcell ${cls}" style="${style}" title="${l.toUpperCase()}: ${status}" onclick="showProcessDetail('${id}')">${label}</div></td>`;
+      }).join('');
+      rows += `<tr><td><div class="proc-name" onclick="showProcessDetail('${id}')">${proc.process_name||id}</div><div class="proc-ws">${id}</div></td>${layerCells}</tr>`;
+    });
+  });
+
+  area.innerHTML = `
+    <div class="stats-row">
+      <div class="stat-card blue"><div class="stat-label">Processes</div><div class="stat-value">${totalProcs}</div></div>
+      <div class="stat-card green"><div class="stat-label">Full layers</div><div class="stat-value">${fullCount}</div></div>
+      <div class="stat-card amber"><div class="stat-label">Partial</div><div class="stat-value">${partialCount}</div></div>
+      <div class="stat-card red"><div class="stat-label">Gaps</div><div class="stat-value">${gapCount}</div></div>
+    </div>
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead><tr>
+          <th>Process</th>
+          <th class="layer-h" style="color:var(--l1)">L1</th>
+          <th class="layer-h" style="color:var(--l2)">L2</th>
+          <th class="layer-h" style="color:var(--l3)">L3</th>
+          <th class="layer-h" style="color:var(--l4)">L4</th>
+          <th class="layer-h" style="color:var(--l5)">L5</th>
+          <th class="layer-h" style="color:var(--l6)">L6</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap">
+      <span style="color:var(--green)">✓ Full coverage</span>
+      <span style="color:var(--amber)">~ Partial coverage</span>
+      <span style="color:var(--red)">✗ Gap — no content</span>
+    </div>`;
+}
+
+function showProcessDetail(id) {
+  selectedProcess = id;
+  showTab('detail');
+}
+
+function renderDetail(area) {
+  if (!selectedProcess) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>No process selected</h3><p>Click any process name in the Coverage Matrix to view its six-layer detail.</p></div>`;
+    return;
+  }
+
+  const allProcs = {};
+  Object.entries(registry?.processes || {}).forEach(([id, p]) => allProcs[id] = p);
+  if (discoveryResult) {
+    Object.entries(discoveryResult.contributions || {}).forEach(([id, p]) => {
+      if (!allProcs[id]) allProcs[id] = { process_id: id, process_name: p.process_name, workstream: p.workstream, layers: {} };
+      ['l1','l2','l3','l4','l5','l6'].forEach(l => { if (p[l]) allProcs[id].layers[l] = p[l]; });
+    });
+  }
+
+  const proc = allProcs[selectedProcess];
+  if (!proc) { area.innerHTML = `<div class="empty-state"><h3>Process not found</h3></div>`; return; }
+
+  const layerNames = { l1:'Business', l2:'Process + OKLM', l3:'System', l4:'Data', l5:'Integration', l6:'Content' };
+  const layerColors = { l1:'var(--l1)', l2:'var(--l2)', l3:'var(--l3)', l4:'var(--l4)', l5:'var(--l5)', l6:'var(--l6)' };
+  const recSources = { l1:'Blueprint, RTM', l2:'Blueprint, Transcripts', l3:'Config Matrix, Transcripts', l4:'Config Matrix, Transcripts, TAR docs', l5:'TAR docs, EINI/EINO specs', l6:'How-To docs, Transcripts' };
+
+  const layerBlocks = ['l1','l2','l3','l4','l5','l6'].map(l => {
+    const layer = proc.layers?.[l];
+    const status = layer?.status || 'gap';
+    const color = layerColors[l];
+    const content = layer?.content;
+    let contentHtml = '';
+
+    if (content && status !== 'gap') {
+      const entries = Object.entries(content).filter(([k,v]) => v && (Array.isArray(v) ? v.length > 0 : String(v).trim().length > 0));
+      if (entries.length > 0) {
+        contentHtml = entries.map(([k, v]) => {
+          if (Array.isArray(v)) return `<div style="margin-bottom:6px"><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase">${k}</span><div style="margin-top:3px">${v.map(i => `<span class="field">${esc(String(i))}</span>`).join('')}</div></div>`;
+          if (typeof v === 'object') return `<div style="margin-bottom:6px"><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase">${k}</span><div class="layer-content" style="margin-top:3px">${esc(JSON.stringify(v, null, 2).slice(0, 200))}</div></div>`;
+          return `<div style="margin-bottom:6px"><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase">${k}</span><div class="layer-content" style="margin-top:3px">${esc(String(v).slice(0, 300))}</div></div>`;
+        }).join('');
+      }
+    }
+
+    const statusLabel = status === 'full' ? '✓ Full' : status === 'partial' ? '~ Partial' : '✗ Gap';
+    const statusColor = status === 'full' ? 'var(--green)' : status === 'partial' ? 'var(--amber)' : 'var(--red)';
+    const gapRec = status === 'gap' ? `<div class="gap-rec">→ Source: ${layer?.recommended_source || recSources[l]}</div>` : '';
+    const sourceDoc = layer?.source_doc ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:4px">Source: ${esc(layer.source_doc)}</div>` : '';
+
+    return `<div class="layer-block ${status}">
+      <div class="layer-block-header">
+        <span class="layer-num" style="background:${color}18;color:${color};border:1px solid ${color}30">${l.toUpperCase()}</span>
+        <span class="layer-name">${layerNames[l]}</span>
+        <span class="layer-status" style="color:${statusColor}">${statusLabel}</span>
+      </div>
+      ${contentHtml ? `<div style="margin-top:8px">${contentHtml}</div>` : ''}
+      ${gapRec}${sourceDoc}
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="proc-detail">
+      <div class="detail-header">
+        <div class="detail-ws">${proc.workstream||''} · ${selectedProcess}</div>
+        <div class="detail-title">${proc.process_name||selectedProcess}</div>
+      </div>
+      <div class="layer-blocks">${layerBlocks}</div>
+    </div>`;
+}
+
+function renderGaps(area) {
+  const allProcs = {};
+  Object.entries(registry?.processes || {}).forEach(([id, p]) => allProcs[id] = p);
+  if (discoveryResult) {
+    Object.entries(discoveryResult.contributions || {}).forEach(([id, p]) => {
+      if (!allProcs[id]) allProcs[id] = { process_id: id, process_name: p.process_name, workstream: p.workstream, layers: {} };
+      ['l1','l2','l3','l4','l5','l6'].forEach(l => { if (p[l]) allProcs[id].layers[l] = p[l]; });
+    });
+  }
+
+  if (Object.keys(allProcs).length === 0) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><h3>No data yet</h3><p>Run a document through discovery to see the gap report.</p></div>`;
+    return;
+  }
+
+  const recSources = { l1:'Blueprint or RTM', l2:'Blueprint or Transcripts', l3:'Config Matrix or Transcripts', l4:'Config Matrix, Transcripts, or TAR docs', l5:'TAR docs or EINI/EINO specs', l6:'How-To docs or Transcripts' };
+  const gapsByDoc = {};
+
+  Object.entries(allProcs).forEach(([id, proc]) => {
+    const gaps = ['l1','l2','l3','l4','l5','l6'].filter(l => !proc.layers?.[l] || proc.layers[l].status === 'gap');
+    if (gaps.length > 0) {
+      gaps.forEach(l => {
+        const rec = proc.layers?.[l]?.recommended_source || recSources[l];
+        if (!gapsByDoc[rec]) gapsByDoc[rec] = [];
+        gapsByDoc[rec].push({ id, name: proc.process_name, layer: l });
+      });
+    }
+  });
+
+  const totalGaps = Object.values(gapsByDoc).reduce((s, v) => s + v.length, 0);
+
+  const cards = Object.entries(gapsByDoc).map(([rec, gaps]) => {
+    const procGroups = {};
+    gaps.forEach(g => { if (!procGroups[g.id]) procGroups[g.id] = { name: g.name, layers: [] }; procGroups[g.id].layers.push(g.layer); });
+    return `<div class="gap-card">
+      <div class="gap-card-title">→ Run: ${esc(rec)}</div>
+      <div class="gap-card-sub">${gaps.length} gap${gaps.length!==1?'s':''} across ${Object.keys(procGroups).length} process${Object.keys(procGroups).length!==1?'es':''}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${Object.entries(procGroups).map(([id, p]) => `
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text);cursor:pointer" onclick="showProcessDetail('${id}')">${esc(p.name)}</span>
+            ${p.layers.map(l => `<span class="gap-layer-pill">${l.toUpperCase()}</span>`).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div style="margin-bottom:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)">${totalGaps} total gaps across ${Object.keys(allProcs).length} processes — grouped by recommended source document</div>
+    <div class="gap-report">${cards}</div>`;
+}
+
+function log(type, msg) {
+  const ts = new Date().toTimeString().slice(0,8);
+  pipelineLog.push({ type, msg, ts });
+  if (activeTab === 'log') renderTab();
+}
+
+function esc(s) { return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+</script>
+</body>
+</html>
