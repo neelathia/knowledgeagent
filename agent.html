@@ -891,7 +891,8 @@ async function sendMsg(){
   showRoute(intent, process, chunks, isGap, gapReason);
   logQuery(query, intent, process, chunks);
   const typingEl = addMsg('bot', '', true);
-  if(noChunks){ typingEl.remove(); addMsg('bot',`No relevant content found for this query. The process "${process||'unknown'}" may not have a How-To document yet. Check the Editor to add one.`); loading=false; document.getElementById('sendBtn').disabled=false; return; }
+  if(noChunks){ typingEl.remove(); const procLabel = process ? process.replace(/-/g,' ').toLowerCase() : 'this topic';
+addMsg('bot',`No content found for "${query}". This looks like a question about ${procLabel} — a How-To document for this process hasn't been added to the knowledge base yet.`); loading=false; document.getElementById('sendBtn').disabled=false; return; }
   const context = buildContext(chunks);
   const contract = intent?(CONTRACTS[intent]||''):'';
   const gapNote = (processKnown&&!processHasDoc)?`Note: The process "${process}" has been identified but no dedicated How-To document exists yet. Answer from related context only and note the gap clearly.`:'';
