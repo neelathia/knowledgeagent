@@ -2,8 +2,9 @@
   "docs": [
     "task_plan.json",
     "swo.json",
-    "wgc_campaign.json"
+    "wgc_campaign.json",
+    "weight_update.json"
   ],
-  "last_updated": "2026-03-31",
+  "last_updated": "2026-04-01",
   "author": "Neela Thiagarajan"
 }
