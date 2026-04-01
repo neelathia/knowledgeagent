@@ -1,0 +1,312 @@
+[
+  {
+    "id": "WGC-CAMP-CONC-001",
+    "title": "What is a WGC Campaign",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "LEARN",
+    "content": "A WGC Campaign ties a Standard Work Order to a set of railcars and generates maintenance work orders for each car in a single one-time operation. It is not a recurring schedule. Once the campaign is set to Active and work orders are generated, the campaign is complete. For additional cars, create a new campaign with a suffix referencing the same Standard Work Order. The campaign number flows to Azure ODS with the Standard Work Order number for downstream reporting. WGC campaigns are used for corrective or targeted maintenance — distinct from PMC campaigns which are recurring on a mileage or calendar schedule.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Generate one-time maintenance work orders for a defined set of railcars by tying a Standard Work Order to a campaign car list."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "concept",
+      "actors": ["Maintenance Planner", "Asset Hub System", "Azure ODS", "Mobile / UBS"],
+      "frequency": "One-time — WGC campaigns do not repeat on a schedule"
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management",
+      "navigation": "Work dropdown → Work Order Planning → Campaigns"
+    },
+    "map_04_data": {
+      "fields_referenced": [],
+      "states_referenced": []
+    },
+    "map_05_knowledge": {
+      "when_to_use": "When a one-time maintenance campaign must generate work orders for a defined set of railcars. Do not use for repeating preventive maintenance — use PMC instead.",
+      "quick_reference": "WGC = one-time work order generation. Requires Task Plan + Standard Work Order. Campaign number flows to Azure ODS.",
+      "related": ["WGC-CAMP-PREREQ-001", "WGC-CAMP-STEP-001-A"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.1",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-PREREQ-001",
+    "title": "WGC Campaign Prerequisites",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "CONSTRAINT",
+    "content": "Three components must exist in sequence before a WGC Campaign can be created: Task Plan, then Standard Work Order with Task Plan linked on Activities tab, then Campaign. A campaign number and car list or filter criteria must also be ready. Prerequisites in order: (1) Task Plan saved — refer to MAINT-TP-001. (2) Standard Work Order created with Task Plan linked on Activities tab — refer to MAINT-SWO-001. (3) Campaign number chosen using MAPMS naming convention (MAPMS + 4-digit identifier matching SWO number). (4) Car List or filter criteria ready. Access to Asset Hub with campaign creation permissions is required. The creation order is non-negotiable — Task Plan must precede Standard Work Order which must precede the WGC Campaign.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Ensure all required components exist and are correctly linked before a WGC Campaign can be created."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "prerequisite",
+      "dependencies": [
+        "Task Plan created and saved (MAINT-TP-001)",
+        "Standard Work Order with Task Plan linked on Activities tab (MAINT-SWO-001)",
+        "Campaign number chosen — MAPMS + 4-digit matching SWO number",
+        "Car List created or filter criteria defined",
+        "Asset Hub campaign creation permissions"
+      ]
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management",
+      "role_required": "Campaign creation permissions"
+    },
+    "map_04_data": {
+      "fields_referenced": ["campaign_number", "standard_work_order", "campaign_type"],
+      "states_referenced": []
+    },
+    "map_05_knowledge": {
+      "when_to_use": "Before creating a WGC Campaign. Verify all prerequisites in order. If any is missing, complete it before proceeding.",
+      "quick_reference": "Prerequisites: (1) Task Plan saved, (2) SWO with Task Plan linked, (3) Campaign number (MAPMS convention), (4) Car List or criteria ready.",
+      "related": ["WGC-CAMP-STEP-001-A", "WGC-CAMP-RULE-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-STEP-001-A",
+    "title": "Create WGC Campaign — Phase 1 and 2: Header and Car Population",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "DO",
+    "content": "Phase 1 — Create Campaign Header: Navigate to Work → Work Order Planning → Campaigns and click New Record. Enter campaign number (MAPMS + 4-digit identifier, matching SWO number by TTX convention). Enter description. Confirm Organization = TTX. Set Campaign Type = WGC — this cannot be changed after creation; if wrong type selected, delete the record and create a new one. Select the Standard Work Order. Click Save and OK. Phase 2 — Define Car Population: On the Car Level Criteria tab choose Option A (criteria-based: set Car Level Criteria to Yes and define filter criteria) or Option B (direct load: leave all criteria No and manually load car numbers to Railcar Equipment tab). Confirm car count is under 20,000 before proceeding — filter criteria returning more than 20,000 records will block equipment retrieval. WGC campaigns do not auto-refresh regardless of criteria setting. Click Save.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Create WGC Campaign header and define the car population."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "step",
+      "steps": [
+        "Navigate to Work → Work Order Planning → Campaigns → New Record",
+        "Enter campaign number (MAPMS convention), description, confirm Organization = TTX",
+        "Set Campaign Type = WGC (immutable after creation)",
+        "Select Standard Work Order, click Save",
+        "On Car Level Criteria tab: Option A (criteria-based) or Option B (direct load)",
+        "Confirm car count under 20,000, click Save"
+      ],
+      "decision": "Option A criteria-based vs Option B direct load"
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management",
+      "screens": ["Campaigns", "Campaign Header", "Car Level Criteria tab"],
+      "navigation": "Work dropdown → Work Order Planning → Campaigns → New Record"
+    },
+    "map_04_data": {
+      "fields_referenced": ["campaign_type", "organization", "car_level_criteria", "campaign_number"],
+      "states_referenced": ["Draft"]
+    },
+    "map_05_knowledge": {
+      "when_to_use": "After all prerequisites confirmed. First half of WGC Campaign creation.",
+      "quick_reference": "Campaigns → New → type WGC → link SWO → define cars (< 20,000) → Save.",
+      "related": ["WGC-CAMP-PREREQ-001", "WGC-CAMP-STEP-001-B", "WGC-CAMP-RULE-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-STEP-001-B",
+    "title": "Create WGC Campaign — Phase 3 and 4: Validate and Activate",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "DO",
+    "content": "Phase 3 — Validate to Generate Car List: Change Status to Validate and click Save. Save is required — the status change alone does not trigger the equipment retrieval job. Wait for status to reach Car List Generated. Equipment retrieval runs every 5 minutes in the test environment and daily in production. Click Refresh to monitor. Cars matching filter criteria appear on the Railcar Equipment tab when complete. Phase 4 — Activate to Generate Work Orders: Once Status = Car List Generated, change Status to Active and click Save. Save is required — the status change alone does not trigger work order generation. Work order generation runs every 5 minutes in test and daily in production. Click Refresh to monitor. Work orders are generated for all cars in the campaign list. Data flows to Azure ODS via Databridge Pro — campaign number, SWO number, and campaign description are sent with each work order.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Validate car list and activate campaign to generate work orders."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "step",
+      "steps": [
+        "Change Status to Validate, click Save (triggers equipment retrieval job)",
+        "Wait for status = Car List Generated (5 min test / daily production)",
+        "Click Refresh to monitor progress",
+        "Change Status to Active, click Save (triggers work order generation job)",
+        "Click Refresh to monitor work order generation"
+      ]
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management",
+      "screens": ["Campaign Header", "Railcar Equipment tab"]
+    },
+    "map_04_data": {
+      "fields_referenced": ["status"],
+      "states_referenced": ["Validate", "Car List Generated", "Active", "Complete"]
+    },
+    "map_05_knowledge": {
+      "when_to_use": "After car population is defined and saved. Second half of WGC Campaign creation.",
+      "quick_reference": "Validate + Save → wait Car List Generated → Active + Save → work orders generate. Save required at both transitions.",
+      "related": ["WGC-CAMP-STEP-001-A", "WGC-CAMP-VALID-001", "WGC-CAMP-EXCEP-001", "WGC-CAMP-INTG-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-RULE-001",
+    "title": "WGC Campaign — Key Rules and Constraints",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "CONSTRAINT",
+    "content": "Seven governing rules for WGC Campaigns that must not be violated. Rule 1: Creation order is mandatory — Task Plan must exist before Standard Work Order, Standard Work Order must exist before Campaign. Rule 2: Campaign Type WGC cannot be changed after creation — if wrong type selected, delete the campaign and create a new one. Rule 3: WGC does not auto-refresh — work orders are generated once; for additional cars, create a new campaign with a suffix (e.g. MAPMS8262_2) using the same Standard Work Order. Rule 4: Copy button is disabled — always create a new campaign record, never copy. Rule 5: Campaign number should match Standard Work Order number — TTX MAPMS naming convention (MAPMS + 4-digit identifier) for ODS aggregation. For split campaigns keep SWO number constant. Rule 6: Scheduled Start Date on generated work orders equals the generation date, not a future date — distinguishes WGC work orders from PMC in ODS reporting. Rule 7: Save is required at every status transition — changing status to Validate or Active without clicking Save does not trigger the system background jobs.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Prevent configuration errors and data integrity issues in WGC Campaign creation and execution."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "rule"
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management"
+    },
+    "map_04_data": {
+      "fields_referenced": ["campaign_type", "scheduled_start_date"],
+      "states_referenced": []
+    },
+    "map_05_knowledge": {
+      "when_to_use": "Before and during campaign creation. Critical at type selection (Rule 2) and status transitions (Rule 7).",
+      "quick_reference": "7 rules: creation order mandatory | type immutable | no auto-refresh | copy disabled | campaign # = SWO # | scheduled date = generation date | Save required at all status changes.",
+      "related": ["WGC-CAMP-STEP-001-A", "WGC-CAMP-STEP-001-B", "WGC-CAMP-PREREQ-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-VALID-001",
+    "title": "Verify Generated Work Orders — WGC Campaign",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "CHECK",
+    "content": "After WGC Campaign activation, verify generated work orders contain all required data before considering the campaign complete. Navigate to Work → Work Orders, filter by Campaign ID (enter campaign number, click Run). Open one generated work order and confirm all 8 verification points: (1) Campaign code is present. (2) Standard Work Order code is present. (3) Description carried over from the campaign. (4) Checklist items from the Task Plan are present. (5) Billing relief codes from the Task Plan are present. (6) Primary document (Copy to Work Order) is present in the Documents tab. (7) Scheduled Start Date equals the date the work order was generated — not a future date. (8) Last Meter Reading is populated for the car. All items must be confirmed before the campaign is considered complete.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Confirm all generated work orders contain correct data before campaign closure."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "validation",
+      "actors": ["Maintenance Planner"]
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Work Orders",
+      "navigation": "Work dropdown → Work Orders → filter by Campaign ID"
+    },
+    "map_04_data": {
+      "fields_referenced": ["campaign_code", "standard_work_order_code", "scheduled_start_date", "last_meter_reading"],
+      "states_referenced": []
+    },
+    "map_05_knowledge": {
+      "when_to_use": "After campaign status = Active and work order generation job has run. Use this checklist before closing the campaign.",
+      "quick_reference": "Filter Work Orders by Campaign ID → verify 8 points: campaign code, SWO code, description, checklist items, billing codes, primary doc, Scheduled Start Date = generation date, Last Meter Reading populated.",
+      "related": ["WGC-CAMP-STEP-001-B", "WGC-CAMP-EXCEP-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "draft"
+  },
+  {
+    "id": "WGC-CAMP-EXCEP-001",
+    "title": "WGC Campaign Troubleshooting — Common Failure States",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "FIX",
+    "content": "Four known failure states during WGC Campaign execution. Failure 1 — Standard Work Order not visible in campaign lookup: Verify the SWO was saved. Search by partial number. Confirm Organization = TTX. If recently created, refresh and try again. Failure 2 — Status stays at Validate and never reaches Car List Generated: Equipment retrieval runs on a schedule (5 minutes in test, daily in production). Click Refresh and wait. If no progress after the expected interval, confirm filter criteria return cars and car count is under 20,000. Failure 3 — Work orders not generated after campaign set to Active: Work order generation is a background job. Wait for the schedule (5 minutes in test, daily in production) and search again. If still empty, contact the Hexagon team to confirm the generation job ran. Failure 4 — Task Plan data missing from generated work orders: Verify the Task Plan is correctly linked on the Standard Work Order Activities tab. Verify the SWO is correctly referenced on the campaign. If the link was missing at generation time, delete and regenerate the work orders.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Resolve the four known failure states that can block WGC Campaign completion."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "exception",
+      "actors": ["Maintenance Planner", "Hexagon Team"]
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "module": "Campaign Management / Work Orders"
+    },
+    "map_04_data": {
+      "fields_referenced": [],
+      "states_referenced": ["Validate", "Car List Generated", "Active"]
+    },
+    "map_05_knowledge": {
+      "when_to_use": "When campaign execution stalls or generated work orders are missing expected data.",
+      "quick_reference": "SWO not found → verify saved, org=TTX | Stuck at Validate → wait job schedule, check criteria | No WOs → wait job schedule, contact Hexagon | Task Plan data missing → verify SWO Activities tab link.",
+      "related": ["WGC-CAMP-STEP-001-B", "WGC-CAMP-VALID-001"]
+    },
+    "source": "AssetHub_HowTo_WGCCampaign_v2.docx",
+    "version": "1.0",
+    "review_status": "sme_review"
+  },
+  {
+    "id": "WGC-CAMP-INTG-001",
+    "title": "WGC Campaign — ODS Integration via Databridge Pro",
+    "process": "WGC Campaign",
+    "domain": "WGC",
+    "intent": "CONSTRAINT",
+    "content": "When a WGC Campaign generates work orders, HxGN EAM sends work order and campaign data to Azure ODS via Databridge Pro. Two integration patterns apply per TAR-030: Pattern 3 (Outbound BOD Push — data sent on work order record insert/update) or Pattern 4 (EAM DLU Extract — scheduled JSON snapshot from the Data Lake Setup screen). All Databridge Pro integrations are near-real-time asynchronous. The EINO-019 to EINO-027 cluster governs HxGN EAM outbound to Azure ODS. Transport is SFTP flat file. Data confirmed to be sent: campaign number, Standard Work Order number, campaign description, work order number. Pattern 4 DLU Extract passes all EAM work order table fields unchanged to ensure no data loss. Downstream consumers of Azure ODS: Equipment Guide, Service Now, SCT, Repair Class Automation, Maintenance Notification, Invoicing Web App, AIC, EDW, MPS. Error handling: 3 automatic retries for connectivity errors, 0 retries for business errors (immediate admin email). BOD errors visible on Databridge Message Status screen in EAM — supports manual retry. Full traceability in Databridge Pro Dataflow Studio — Data Provenance. Message retention: 10 days (Databridge), 30 days (EAM Message Status screen). Field-level payload specification in TAR-035 and TAR-040 documents on TTX SharePoint.",
+    "map_01_business": {
+      "process_id": "MAINT-WGC",
+      "process_name": "WGC Campaign",
+      "business_capability": "Work Order Management",
+      "process_goal": "Send work order and campaign data from HxGN EAM to Azure ODS for downstream reporting and system consumption."
+    },
+    "map_02_process": {
+      "domain": "WGC",
+      "unit_type": "integration_trigger",
+      "actors": ["HxGN EAM", "Databridge Pro", "Azure ODS"],
+      "trigger": "Work order generated by WGC Campaign activation"
+    },
+    "map_03_system": {
+      "primary_system": "Asset Hub",
+      "target_system": "Azure ODS",
+      "middleware": "Databridge Pro",
+      "transport": "SFTP flat file",
+      "integration_cluster": "EINO-019 to EINO-027"
+    },
+    "map_04_data": {
+      "fields_referenced": ["campaign_number", "standard_work_order_number", "campaign_description"],
+      "states_referenced": []
+    },
+    "map_05_knowledge": {
+      "when_to_use": "Reference when configuring ODS reporting, troubleshooting missing work order data in ODS, or diagnosing Databridge Pro failures.",
+      "quick_reference": "WGC → ODS: Databridge Pro, SFTP, near-real-time async. EINO-019 to EINO-027. 3 retries for connectivity errors. Business errors → admin email + Databridge Message Status screen. Field spec: TAR-035 + TAR-040.",
+      "related": ["WGC-CAMP-STEP-001-B"]
+    },
+    "source": "TAR-030_Integration_Strategy_and_Governance_TTX.docx",
+    "version": "3.0",
+    "review_status": "draft"
+  }
+]
