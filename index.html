@@ -481,16 +481,21 @@ async function loadDocs() {
         const r = await fetch('knowledge_base/' + filename);
         const d = await r.json();
         docs[d.doc_id] = d;
-      } catch(e) { console.warn('Failed to load', filename); 
+      } catch(err) { console.warn('Failed to load', filename, err); }
     }
-  } catch(e) {
-    console.warn('Manifest load failed, falling back to localStorage');
-    try { const stored = localStorage.getItem(DOCS_KEY); if(stored) docs = JSON.parse(stored); } catch(e2) {}
+  } catch(err) {
+    console.warn('Manifest load failed, falling back to localStorage', err);
+    try {
+      const stored = localStorage.getItem(DOCS_KEY);
+      if (stored) docs = JSON.parse(stored);
+    } catch(err2) {
+      docs = {};
+    }
   }
   if (Object.keys(docs).length === 0) docs['MAINT-TP-001'] = getTaskPlanSeed();
-  renderSidebar(); updateCounts();
+  renderSidebar();
+  updateCounts();
   if (Object.keys(docs).length > 0) openDoc(Object.keys(docs)[0]);
-}
 }
 
 function saveDocs() { localStorage.setItem(DOCS_KEY, JSON.stringify(docs)); unsaved = false; updateSaveStatus(true); }
