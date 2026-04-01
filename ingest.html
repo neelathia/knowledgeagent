@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OKA — Knowledge Ingestion Pipeline · Neela Thiagarajan</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#000000;
+  --surface:#0a0a0a;
+  --surface-2:#111111;
+  --surface-3:#191919;
+  --border:#1e1e1e;
+  --border-light:#2a2a2a;
+  --white:#ffffff;
+  --text:#e8e8e8;
+  --text-dim:#888888;
+  --text-muted:#444444;
+  --green:#00ff88;
+  --green-dim:rgba(0,255,136,0.08);
+  --intent-do:#00ff88;
+  --intent-fix:#ff4d4d;
+  --intent-chk:#4d9fff;
+  --intent-con:#ffb84d;
+  --intent-lrn:#c084fc;
+  --amber:#ffb84d;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:999;}
+body{background:var(--black);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.92);backdrop-filter:blur(20px);flex-shrink:0;position:sticky;top:0;z-index:10;}
+.topbar-left{display:flex;align-items:center;gap:16px;}
+.topbar-logo{font-family:'Poppins',sans-serif;font-size:15px;font-weight:800;color:var(--white);letter-spacing:-.01em;display:flex;align-items:center;gap:3px;}
+.topbar-logo span{color:var(--green);}
+.topbar-divider{width:1px;height:20px;background:var(--border-light);}
+.topbar-info .topbar-title{font-size:13px;color:var(--text-dim);}
+.topbar-info .topbar-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.nav-link{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:6px;transition:all .2s;letter-spacing:.04em;text-transform:uppercase;}
+.nav-link:hover{color:var(--white);border-color:var(--border-light);}
+.pill{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:100px;border:1px solid;}
+.pill-amber{color:var(--amber);border-color:rgba(255,184,77,.2);background:rgba(255,184,77,.06);}
+
+/* SETUP SCREEN */
+#setupScreen{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+.setup-card{max-width:560px;width:100%;}
+.setup-logo{font-family:'Poppins',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:48px;display:flex;align-items:center;gap:6px;}
+.setup-logo span{color:var(--green);}
+.setup-headline{font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;color:var(--white);line-height:1.1;letter-spacing:-.01em;margin-bottom:10px;}
+.setup-headline em{font-style:normal;color:var(--green);}
+.setup-sub{font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:32px;}
+.field-group{margin-bottom:16px;}
+.field-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:block;}
+.field-input{width:100%;background:var(--surface-2);border:1px solid var(--border-light);border-radius:8px;padding:12px 16px;color:var(--white);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;}
+.field-input:focus{border-color:rgba(0,255,136,.4);}
+.field-input::placeholder{color:var(--text-muted);}
+.btn-start{width:100%;background:var(--white);color:var(--black);border:none;border-radius:8px;padding:14px;font-family:'Poppins',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;margin-top:8px;}
+.btn-start:hover{background:var(--green);transform:translateY(-1px);}
+.setup-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:12px;line-height:1.6;}
+
+/* MAIN APP */
+#app{display:none;flex:1;flex-direction:column;}
+
+/* PIPELINE LAYOUT */
+.pipeline-wrap{flex:1;display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 56px);}
+
+/* LEFT PANEL */
+.left-panel{border-right:1px solid var(--border);display:flex;flex-direction:column;background:rgba(0,0,0,.5);}
+
+.panel-section{padding:20px 20px 0;}
+.panel-section-last{padding:20px;}
+
+.section-label{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Upload zone */
+.upload-zone{border:1px dashed var(--border-light);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;margin-bottom:20px;}
+.upload-zone:hover,.upload-zone.drag{border-color:rgba(0,255,136,.4);background:var(--green-dim);}
+.upload-zone.has-file{border-color:rgba(0,255,136,.3);border-style:solid;background:rgba(0,255,136,.04);}
+.upload-icon{font-size:24px;margin-bottom:8px;opacity:.4;}
+.upload-title{font-size:13px;color:var(--text-dim);margin-bottom:4px;}
+.upload-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);}
+.upload-file-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);margin-top:8px;}
+#fileInput{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* Process info */
+.process-row{display:flex;gap:8px;margin-bottom:20px;}
+.process-input{flex:1;background:var(--surface-2);border:1px solid var(--border-light);border-radius:8px;padding:9px 12px;color:var(--white);font-family:'DM Mono',monospace;font-size:11px;outline:none;transition:border-color .2s;}
+.process-input:focus{border-color:rgba(0,255,136,.3);}
+.process-input::placeholder{color:var(--text-muted);}
+
+/* Pipeline steps */
+.pipeline-steps{display:flex;flex-direction:column;gap:1px;margin-bottom:20px;}
+.step{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;transition:all .2s;}
+.step.active{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.15);}
+.step.done{background:rgba(0,255,136,.04);}
+.step.idle{opacity:.4;}
+.step.error{background:rgba(255,77,77,.06);border:1px solid rgba(255,77,77,.15);}
+.step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;flex-shrink:0;}
+.step.idle .step-num{background:var(--surface-3);color:var(--text-muted);border:1px solid var(--border);}
+.step.active .step-num{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);animation:pulse 1.5s infinite;}
+.step.done .step-num{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.step.error .step-num{background:rgba(255,77,77,.15);color:var(--intent-fix);border:1px solid rgba(255,77,77,.3);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.step-label{font-size:12px;color:var(--text-dim);}
+.step.active .step-label{color:var(--text);}
+.step.done .step-label{color:var(--text-dim);}
+.step-detail{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-left:32px;margin-top:-4px;margin-bottom:4px;}
+.step.active .step-detail{color:var(--green);}
+
+/* Run button */
+.btn-run{width:100%;background:var(--green);color:var(--black);border:none;border-radius:8px;padding:13px;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-run:hover{transform:translateY(-1px);background:#00e87a;}
+.btn-run:disabled{background:var(--surface-3);color:var(--text-muted);cursor:not-allowed;transform:none;}
+.btn-publish{width:100%;background:var(--white);color:var(--black);border:none;border-radius:8px;padding:13px;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;margin-top:8px;display:none;}
+.btn-publish:hover{background:var(--green);transform:translateY(-1px);}
+.btn-publish.show{display:block;}
+.btn-publish:disabled{background:var(--surface-3);color:var(--text-muted);cursor:not-allowed;transform:none;}
+
+/* RIGHT PANEL */
+.right-panel{display:flex;flex-direction:column;overflow:hidden;}
+
+.right-top{padding:24px 28px 0;border-bottom:1px solid var(--border);}
+.right-title{font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;color:var(--white);margin-bottom:4px;}
+.right-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:20px;}
+
+/* Tab bar */
+.tab-bar{display:flex;gap:2px;}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;border:1px solid transparent;border-bottom:none;color:var(--text-muted);}
+.tab:hover{color:var(--text-dim);background:var(--surface-2);}
+.tab.active{color:var(--white);background:var(--surface-2);border-color:var(--border);}
+
+/* Content area */
+.content-area{flex:1;overflow-y:auto;padding:24px 28px;}
+.content-area::-webkit-scrollbar{width:2px;}
+.content-area::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px;}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 40px;gap:16px;}
+.empty-icon{width:56px;height:56px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.6;}
+.empty-state h3{font-family:'Poppins',sans-serif;font-size:18px;font-weight:700;color:var(--white);}
+.empty-state p{font-size:13px;color:var(--text-muted);max-width:320px;line-height:1.7;}
+
+/* Unit cards */
+.units-grid{display:flex;flex-direction:column;gap:12px;}
+.unit-card{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;transition:border-color .2s;}
+.unit-card:hover{border-color:var(--border-light);}
+.unit-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.unit-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);font-weight:500;}
+.unit-intent{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;}
+.intent-DO{background:rgba(0,255,136,.1);color:var(--intent-do);}
+.intent-FIX{background:rgba(255,77,77,.1);color:var(--intent-fix);}
+.intent-CHECK{background:rgba(77,159,255,.1);color:var(--intent-chk);}
+.intent-CONSTRAINT{background:rgba(255,184,77,.1);color:var(--intent-con);}
+.intent-LEARN{background:rgba(192,132,252,.1);color:var(--intent-lrn);}
+.unit-title{font-size:13px;font-weight:500;color:var(--white);flex:1;}
+.unit-body{font-size:12px;color:var(--text-dim);line-height:1.65;margin-bottom:10px;}
+.unit-meta{display:flex;gap:8px;flex-wrap:wrap;}
+.meta-chip{font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:100px;border:1px solid var(--border);color:var(--text-muted);}
+
+/* Log area */
+.log-area{background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.8;color:var(--text-dim);min-height:200px;max-height:calc(100vh - 200px);overflow-y:auto;}
+.log-area::-webkit-scrollbar{width:2px;}
+.log-area::-webkit-scrollbar-thumb{background:var(--border-light);}
+.log-line{padding:1px 0;}
+.log-line.info{color:var(--text-dim);}
+.log-line.success{color:var(--green);}
+.log-line.warn{color:var(--amber);}
+.log-line.error{color:var(--intent-fix);}
+.log-ts{color:var(--text-muted);margin-right:8px;}
+
+/* JSON preview */
+.json-preview{background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;color:var(--text-dim);white-space:pre-wrap;overflow-y:auto;max-height:calc(100vh - 200px);}
+
+/* Published banner */
+.publish-banner{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px;display:none;}
+.publish-banner.show{display:flex;}
+.publish-banner-icon{font-size:20px;}
+.publish-banner-text{font-size:13px;color:var(--green);}
+.publish-banner-sub{font-family:'DM Mono',monospace;font-size:10px;color:rgba(0,255,136,.6);margin-top:2px;}
+
+/* Stats row */
+.stats-row{display:flex;gap:10px;margin-bottom:20px;}
+.stat-card{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+.stat-value{font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.stat-card.blue .stat-value{color:var(--intent-chk);}
+.stat-card.green .stat-value{color:var(--green);}
+.stat-card.amber .stat-value{color:var(--amber);}
+.stat-card.purple .stat-value{color:var(--intent-lrn);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">OKA<span>.</span></div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-info">
+      <div class="topbar-title">Knowledge Ingestion Pipeline</div>
+      <div class="topbar-sub">Transcript → Canonical JSON → Knowledge Base</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-amber" id="statusPill">● Ready</span>
+    <a href="agent.html" class="nav-link">Agent →</a>
+    <a href="index.html" class="nav-link">Editor →</a>
+    <a href="knowledge_graph.html" class="nav-link">Graph →</a>
+  </div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">OKA<span>.</span></div>
+    <div class="setup-headline">Knowledge<br><em>Ingestion</em> Pipeline</div>
+    <div class="setup-sub">Upload a transcript or document. The pipeline extracts knowledge units, renders a How-To, and publishes directly to the knowledge base — no manual JSON editing required.</div>
+    <div class="field-group">
+      <label class="field-label">Anthropic API Key</label>
+      <input type="password" class="field-input" id="apiKeyInput" placeholder="sk-ant-api03-..."/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">GitHub Personal Access Token (repo write)</label>
+      <input type="password" class="field-input" id="githubTokenInput" placeholder="github_pat_..."/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">GitHub Repo (owner/repo)</label>
+      <input type="text" class="field-input" id="repoInput" placeholder="neelathia/knowledgeagent" value="neelathia/knowledgeagent"/>
+    </div>
+    <button class="btn-start" onclick="startApp()">Start Pipeline →</button>
+    <div class="setup-note">🔒 Keys stored in session memory only. Never logged, never sent anywhere except Anthropic and GitHub APIs directly.</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="pipeline-wrap">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="panel-section">
+        <div class="section-label">Source document</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" accept=".txt,.md,.docx,.pdf" onchange="handleFile(this)"/>
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">Drop transcript or document here</div>
+          <div class="upload-sub">.txt · .md · .docx · .pdf</div>
+          <div class="upload-file-name" id="uploadFileName"></div>
+        </div>
+
+        <div class="section-label">Process info</div>
+        <div class="process-row">
+          <input type="text" class="process-input" id="processCode" placeholder="Process code e.g. WEIGHT-UPDATE"/>
+        </div>
+        <div class="process-row">
+          <input type="text" class="process-input" id="processTitle" placeholder="How-To title e.g. How to Update Car Weight"/>
+        </div>
+        <div class="process-row">
+          <input type="text" class="process-input" id="docId" placeholder="Doc ID e.g. MAINT-WU-001"/>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-label">Pipeline</div>
+        <div class="pipeline-steps" id="pipelineSteps">
+          <div class="step idle" id="step-1">
+            <div class="step-num">1</div>
+            <div class="step-label">Normalize source</div>
+          </div>
+          <div class="step idle" id="step-2">
+            <div class="step-num">2</div>
+            <div class="step-label">Extract units (Pass 1)</div>
+          </div>
+          <div class="step idle" id="step-3">
+            <div class="step-num">3</div>
+            <div class="step-label">Validate schema</div>
+          </div>
+          <div class="step idle" id="step-4">
+            <div class="step-num">4</div>
+            <div class="step-label">Render How-To (Pass 2)</div>
+          </div>
+          <div class="step idle" id="step-5">
+            <div class="step-num">5</div>
+            <div class="step-label">Preview &amp; review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section-last" style="margin-top:auto;">
+        <button class="btn-run" id="btnRun" onclick="runPipeline()" disabled>Run Pipeline</button>
+        <button class="btn-publish show" id="btnPublish" onclick="publishToGitHub()" disabled>Publish to Knowledge Base</button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-top">
+        <div class="right-title" id="rightTitle">Ingestion Pipeline</div>
+        <div class="right-sub" id="rightSub">Upload a document and configure process info to begin</div>
+        <div class="tab-bar">
+          <div class="tab active" onclick="showTab('units')" id="tab-units">Units</div>
+          <div class="tab" onclick="showTab('howto')" id="tab-howto">How-To Preview</div>
+          <div class="tab" onclick="showTab('json')" id="tab-json">Raw JSON</div>
+          <div class="tab" onclick="showTab('log')" id="tab-log">Log</div>
+        </div>
+      </div>
+
+      <div class="content-area" id="contentArea">
+        <div class="empty-state">
+          <div class="empty-icon">⚡</div>
+          <h3>Pipeline ready</h3>
+          <p>Upload a transcript, set the process info, then click Run Pipeline. Extracted knowledge units will appear here.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let API_KEY = '';
+let GITHUB_TOKEN = '';
+let GITHUB_REPO = '';
+let sourceText = '';
+let extractedUnits = [];
+let renderedDoc = null;
+let pipelineLog = [];
+let activeTab = 'units';
+
+const EXTRACTION_SYSTEM_PROMPT = `You are an expert knowledge architect running the OKA (Operational Knowledge Architecture) extraction pipeline.
+
+Your task: read the provided transcript or document and extract structured knowledge units in the OKA canonical format.
+
+EXTRACTION RULES:
+1. Extract ONLY what is explicitly stated or demonstrated. Do not infer or add information not present.
+2. Each unit must have one intent: DO (step-by-step action), FIX (troubleshooting), CHECK (validation/prerequisites), CONSTRAINT (rules that must not be violated), LEARN (conceptual understanding).
+3. Extract the minimum complete set of units — typically 5-8 for a single process. Do not over-extract.
+4. For transcripts: focus on verified facts, confirmed decisions, demonstrated steps. Ignore speculation.
+5. Preserve exact field names, status values, and system terminology as spoken.
+
+OUTPUT FORMAT — respond with ONLY a JSON array of units, no other text:
+
+[
+  {
+    "unit_id": "string — e.g. PROC-INTENT-001",
+    "intent": "DO|FIX|CHECK|CONSTRAINT|LEARN",
+    "title": "short descriptive title",
+    "content": "full content — steps, rules, or explanation as appropriate for the intent",
+    "keywords": ["array", "of", "retrieval", "keywords"],
+    "process_stage": "e.g. Pre-Update → Weight Update → Verification",
+    "business_capability": "e.g. Fleet Management",
+    "business_outcome": "what the business gets from this unit",
+    "data_triggers": "what fields or states trigger this",
+    "confidence": "high|medium|low",
+    "gap_note": "any missing information that needs SME clarification, or empty string"
+  }
+]`;
+
+const RENDER_SYSTEM_PROMPT = `You are an expert knowledge architect running the OKA renderer pipeline.
+
+Your task: take the provided canonical JSON units and render them into a complete How-To document in the exact JSON format used by the OKA knowledge base.
+
+OUTPUT FORMAT — respond with ONLY a single JSON object matching this exact schema, no other text:
+
+{
+  "doc_id": "provided",
+  "title": "provided",
+  "process": "provided",
+  "process_keywords": ["array of keywords from all units combined"],
+  "hierarchy": {
+    "l1": "Maintain Railcar Assets",
+    "l2": "Plan Asset Maintenance",
+    "l3": "Manage Condition Based Maintenance",
+    "l4": "Work Order Management",
+    "l5": "process-specific L5 name"
+  },
+  "systems": ["systems mentioned across all units"],
+  "related_processes": ["related processes mentioned"],
+  "data_entities": ["data entities mentioned"],
+  "source": "source document name",
+  "version": "1.0",
+  "author": "Neela Thiagarajan",
+  "last_updated": "today's date YYYY-MM-DD",
+  "sections": {
+    "overview": { "intent": "LEARN", "audience": "all", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." },
+    "prerequisites": { "intent": "CHECK", "audience": "planner", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." },
+    "steps": { "intent": "DO", "audience": "planner", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." },
+    "rules": { "intent": "CONSTRAINT", "audience": "planner", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." },
+    "troubleshoot": { "intent": "FIX", "audience": "planner", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." },
+    "glossary": { "intent": "LEARN", "audience": "all", "business_capability": "...", "business_outcome": "...", "process_stage": "...", "data_triggers": "...", "keywords": [...], "content": "..." }
+  },
+  "default_capability": "...",
+  "default_process_stage": "...",
+  "default_outcome": "..."
+}`;
+
+function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const token = document.getElementById('githubTokenInput').value.trim();
+  const repo = document.getElementById('repoInput').value.trim();
+  if (!key || !key.startsWith('sk-')) { alert('Please enter a valid Anthropic API key'); return; }
+  if (!token) { alert('Please enter your GitHub personal access token'); return; }
+  if (!repo) { alert('Please enter your GitHub repo (owner/repo)'); return; }
+  API_KEY = key;
+  GITHUB_TOKEN = token;
+  GITHUB_REPO = repo;
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const zone = document.getElementById('uploadZone');
+  const nameEl = document.getElementById('uploadFileName');
+  zone.classList.add('has-file');
+  nameEl.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    sourceText = e.target.result;
+    log('info', `Loaded: ${file.name} (${(sourceText.length/1000).toFixed(1)}k chars)`);
+    checkReady();
+  };
+  reader.readAsText(file);
+}
+
+function checkReady() {
+  const hasFile = sourceText.length > 0;
+  const hasProcess = document.getElementById('processCode').value.trim().length > 0;
+  const hasTitle = document.getElementById('processTitle').value.trim().length > 0;
+  const hasDocId = document.getElementById('docId').value.trim().length > 0;
+  document.getElementById('btnRun').disabled = !(hasFile && hasProcess && hasTitle && hasDocId);
+}
+
+document.getElementById('processCode').addEventListener('input', checkReady);
+document.getElementById('processTitle').addEventListener('input', checkReady);
+document.getElementById('docId').addEventListener('input', checkReady);
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    handleFile(document.getElementById('fileInput'));
+  }
+});
+
+function setStep(n, state, detail) {
+  const el = document.getElementById(`step-${n}`);
+  el.className = `step ${state}`;
+  if (detail) {
+    let d = el.querySelector('.step-detail');
+    if (!d) { d = document.createElement('div'); d.className = 'step-detail'; el.after(d); }
+    d.textContent = detail;
+  }
+}
+
+function log(type, msg) {
+  const ts = new Date().toTimeString().slice(0,8);
+  pipelineLog.push({ type, msg, ts });
+  if (activeTab === 'log') renderLog();
+}
+
+function renderLog() {
+  const area = document.getElementById('contentArea');
+  if (activeTab !== 'log') return;
+  area.innerHTML = `<div class="log-area">${pipelineLog.map(l => `<div class="log-line ${l.type}"><span class="log-ts">${l.ts}</span>${escHtml(l.msg)}</div>`).join('')}</div>`;
+  area.querySelector('.log-area').scrollTop = 99999;
+}
+
+async function callClaude(system, userMsg, maxTokens=4000) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.[0]?.text || '';
+}
+
+function parseJSON(text) {
+  const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(clean);
+}
+
+async function runPipeline() {
+  const processCode = document.getElementById('processCode').value.trim().toUpperCase();
+  const processTitle = document.getElementById('processTitle').value.trim();
+  const docId = document.getElementById('docId').value.trim();
+
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('btnPublish').disabled = true;
+  document.getElementById('statusPill').textContent = '⟳ Running';
+  document.getElementById('statusPill').style.color = 'var(--amber)';
+  extractedUnits = [];
+  renderedDoc = null;
+  pipelineLog = [];
+
+  showTab('log');
+
+  try {
+    // STEP 1 — Normalize
+    setStep(1, 'active', 'Reading source...');
+    log('info', 'Step 1: Normalizing source document');
+    const truncated = sourceText.slice(0, 40000);
+    const wordCount = truncated.split(/\s+/).length;
+    log('info', `Source: ${wordCount} words, truncated to 40k chars for extraction`);
+    setStep(1, 'done', `${wordCount} words`);
+    log('success', 'Step 1 complete — source normalized');
+
+    // STEP 2 — Extract
+    setStep(2, 'active', 'Calling Claude API...');
+    log('info', 'Step 2: Extracting knowledge units (Pass 1)');
+    log('info', `Process: ${processCode} | Doc: ${docId}`);
+
+    const extractPrompt = `Source document (${processCode} — ${processTitle}):\n\n${truncated}\n\nExtract all knowledge units for the process: ${processTitle}\nProcess code: ${processCode}\nDoc ID prefix: ${docId}`;
+
+    const extractResponse = await callClaude(EXTRACTION_SYSTEM_PROMPT, extractPrompt, 4000);
+    log('info', 'Parsing extracted units...');
+
+    extractedUnits = parseJSON(extractResponse);
+    setStep(2, 'done', `${extractedUnits.length} units extracted`);
+    log('success', `Step 2 complete — ${extractedUnits.length} units extracted`);
+    extractedUnits.forEach(u => log('info', `  · ${u.unit_id} [${u.intent}] — ${u.title}`));
+
+    // STEP 3 — Validate
+    setStep(3, 'active', 'Checking schema...');
+    log('info', 'Step 3: Validating schema');
+    let warnings = 0;
+    extractedUnits.forEach(u => {
+      if (!u.unit_id) { log('warn', `Missing unit_id on unit`); warnings++; }
+      if (!['DO','FIX','CHECK','CONSTRAINT','LEARN'].includes(u.intent)) { log('warn', `Invalid intent: ${u.intent}`); warnings++; }
+      if (!u.content || u.content.length < 20) { log('warn', `Thin content on ${u.unit_id}`); warnings++; }
+      if (u.confidence === 'low') { log('warn', `Low confidence: ${u.unit_id} — ${u.gap_note}`); }
+    });
+    const intentCounts = {};
+    extractedUnits.forEach(u => intentCounts[u.intent] = (intentCounts[u.intent]||0)+1);
+    log('info', `Intent distribution: ${Object.entries(intentCounts).map(([k,v])=>`${k}:${v}`).join(' | ')}`);
+    setStep(3, 'done', `${warnings} warnings`);
+    log(warnings > 0 ? 'warn' : 'success', `Step 3 complete — ${warnings} warnings`);
+
+    // STEP 4 — Render
+    setStep(4, 'active', 'Rendering How-To...');
+    log('info', 'Step 4: Rendering How-To document (Pass 2)');
+
+    const renderPrompt = `Canonical units to render:\n${JSON.stringify(extractedUnits, null, 2)}\n\nDoc ID: ${docId}\nTitle: ${processTitle}\nProcess code: ${processCode}\nToday's date: ${new Date().toISOString().split('T')[0]}`;
+
+    const renderResponse = await callClaude(RENDER_SYSTEM_PROMPT, renderPrompt, 6000);
+    renderedDoc = parseJSON(renderResponse);
+    setStep(4, 'done', '6 sections rendered');
+    log('success', `Step 4 complete — How-To rendered: ${Object.keys(renderedDoc.sections).length} sections`);
+
+    // STEP 5 — Preview
+    setStep(5, 'done', 'Ready to review');
+    log('success', 'Step 5 complete — ready for review and publish');
+
+    document.getElementById('statusPill').textContent = '✓ Complete';
+    document.getElementById('statusPill').style.color = 'var(--green)';
+    document.getElementById('btnPublish').disabled = false;
+    document.getElementById('rightTitle').textContent = processTitle;
+    document.getElementById('rightSub').textContent = `${extractedUnits.length} units extracted · ${Object.keys(renderedDoc.sections).length} sections rendered · ready to publish`;
+
+    showTab('units');
+
+  } catch (err) {
+    log('error', `Pipeline failed: ${err.message}`);
+    document.getElementById('statusPill').textContent = '✗ Error';
+    document.getElementById('statusPill').style.color = 'var(--intent-fix)';
+    document.getElementById('btnRun').disabled = false;
+    setStep(2, 'error', err.message.slice(0, 60));
+  }
+}
+
+async function publishToGitHub() {
+  if (!renderedDoc) return;
+  document.getElementById('btnPublish').disabled = true;
+  document.getElementById('statusPill').textContent = '⟳ Publishing';
+  document.getElementById('statusPill').style.color = 'var(--amber)';
+
+  const filename = `${renderedDoc.process.toLowerCase().replace(/[^a-z0-9]/g,'_')}.json`;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(renderedDoc, null, 2))));
+  const path = `knowledge_base/${filename}`;
+
+  log('info', `Publishing to GitHub: ${GITHUB_REPO}/${path}`);
+  showTab('log');
+
+  try {
+    // Check if file exists (to get SHA for update)
+    let sha = null;
+    const checkRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      sha = existing.sha;
+      log('info', `File exists — updating (SHA: ${sha.slice(0,8)}...)`);
+    } else {
+      log('info', 'File does not exist — creating new');
+    }
+
+    // Write the doc file
+    const writeBody = {
+      message: `Add ${renderedDoc.doc_id} — ${renderedDoc.title}`,
+      content,
+      ...(sha ? { sha } : {})
+    };
+    const writeRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(writeBody)
+    });
+    if (!writeRes.ok) {
+      const err = await writeRes.json();
+      throw new Error(err.message || 'GitHub write failed');
+    }
+    log('success', `✓ Written: knowledge_base/${filename}`);
+
+    // Update manifest.json
+    log('info', 'Updating manifest.json...');
+    const manifestRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/knowledge_base/manifest.json`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!manifestRes.ok) throw new Error('Could not read manifest.json');
+    const manifestData = await manifestRes.json();
+    const manifestContent = JSON.parse(atob(manifestData.content.replace(/\n/g,'')));
+
+    if (!manifestContent.docs.includes(filename)) {
+      manifestContent.docs.push(filename);
+      manifestContent.last_updated = new Date().toISOString().split('T')[0];
+      const newManifest = btoa(unescape(encodeURIComponent(JSON.stringify(manifestContent, null, 2))));
+      const manifestWrite = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/knowledge_base/manifest.json`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Update manifest — add ${filename}`, content: newManifest, sha: manifestData.sha })
+      });
+      if (!manifestWrite.ok) throw new Error('manifest.json update failed');
+      log('success', `✓ manifest.json updated — now lists ${manifestContent.docs.length} docs`);
+    } else {
+      log('info', `manifest.json already includes ${filename} — no change needed`);
+    }
+
+    log('success', '✓ Published successfully — agent and knowledge graph will update on next load');
+    document.getElementById('statusPill').textContent = '✓ Published';
+    document.getElementById('statusPill').style.color = 'var(--green)';
+
+    // Show publish banner
+    showPublishBanner(filename, manifestContent.docs.length);
+
+  } catch (err) {
+    log('error', `Publish failed: ${err.message}`);
+    document.getElementById('statusPill').textContent = '✗ Publish failed';
+    document.getElementById('statusPill').style.color = 'var(--intent-fix)';
+    document.getElementById('btnPublish').disabled = false;
+  }
+}
+
+function showPublishBanner(filename, docCount) {
+  showTab('units');
+  const area = document.getElementById('contentArea');
+  const banner = document.createElement('div');
+  banner.className = 'publish-banner show';
+  banner.innerHTML = `<div class="publish-banner-icon">✓</div><div><div class="publish-banner-text">Published to knowledge base</div><div class="publish-banner-sub">knowledge_base/${filename} · manifest updated · ${docCount} docs total · agent and graph update on next load</div></div>`;
+  area.insertBefore(banner, area.firstChild);
+}
+
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const area = document.getElementById('contentArea');
+  if (activeTab === 'log') { renderLog(); return; }
+
+  if (activeTab === 'units') {
+    if (extractedUnits.length === 0) {
+      area.innerHTML = `<div class="empty-state"><div class="empty-icon">⚡</div><h3>No units yet</h3><p>Run the pipeline to extract knowledge units from your document.</p></div>`;
+      return;
+    }
+    const intentCounts = {};
+    extractedUnits.forEach(u => intentCounts[u.intent] = (intentCounts[u.intent]||0)+1);
+    const lowConf = extractedUnits.filter(u => u.confidence === 'low').length;
+    area.innerHTML = `
+      <div class="stats-row">
+        <div class="stat-card green"><div class="stat-label">Units</div><div class="stat-value">${extractedUnits.length}</div></div>
+        <div class="stat-card blue"><div class="stat-label">DO steps</div><div class="stat-value">${intentCounts['DO']||0}</div></div>
+        <div class="stat-card amber"><div class="stat-label">Low conf</div><div class="stat-value">${lowConf}</div></div>
+        <div class="stat-card purple"><div class="stat-label">Warnings</div><div class="stat-value">${pipelineLog.filter(l=>l.type==='warn').length}</div></div>
+      </div>
+      <div class="units-grid">${extractedUnits.map(u => `
+        <div class="unit-card">
+          <div class="unit-header">
+            <span class="unit-id">${escHtml(u.unit_id)}</span>
+            <span class="unit-intent intent-${u.intent}">${u.intent}</span>
+            <span class="unit-title">${escHtml(u.title)}</span>
+          </div>
+          <div class="unit-body">${escHtml(u.content.slice(0, 280))}${u.content.length > 280 ? '…' : ''}</div>
+          <div class="unit-meta">
+            <span class="meta-chip">conf: ${u.confidence}</span>
+            ${u.gap_note ? `<span class="meta-chip" style="color:var(--amber);border-color:rgba(255,184,77,.2)">⚠ ${escHtml(u.gap_note.slice(0,50))}</span>` : ''}
+            ${u.keywords.slice(0,3).map(k=>`<span class="meta-chip">${escHtml(k)}</span>`).join('')}
+          </div>
+        </div>`).join('')}
+      </div>`;
+    return;
+  }
+
+  if (activeTab === 'howto') {
+    if (!renderedDoc) {
+      area.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><h3>No How-To yet</h3><p>Run the pipeline to render the How-To document.</p></div>`;
+      return;
+    }
+    const sections = renderedDoc.sections || {};
+    area.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-family:'Poppins',sans-serif;font-size:20px;font-weight:800;color:var(--white);margin-bottom:4px">${escHtml(renderedDoc.title)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)">${escHtml(renderedDoc.doc_id)} · ${escHtml(renderedDoc.process)} · v${escHtml(renderedDoc.version)}</div>
+      </div>
+      ${Object.entries(sections).map(([name, sec]) => `
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="unit-intent intent-${sec.intent}" style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;">${sec.intent}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em">${escHtml(name)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-dim);line-height:1.7;white-space:pre-wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px">${escHtml(sec.content)}</div>
+        </div>`).join('')}`;
+    return;
+  }
+
+  if (activeTab === 'json') {
+    if (!renderedDoc) {
+      area.innerHTML = `<div class="empty-state"><div class="empty-icon">{}</div><h3>No JSON yet</h3><p>Run the pipeline to generate the knowledge base JSON.</p></div>`;
+      return;
+    }
+    area.innerHTML = `<div class="json-preview">${escHtml(JSON.stringify(renderedDoc, null, 2))}</div>`;
+    return;
+  }
+}
+
+function escHtml(s) {
+  return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+</script>
+</body>
+</html>
